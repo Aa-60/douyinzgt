@@ -1,0 +1,9 @@
+[
+  {
+    "name": "示例图片",
+    "type": "image",
+    "path": "resources/sample.txt",
+    "desc": "请把真实资源放进 resources/ 文件夹并在 manifest.json 登记",
+    "date": "2026-08-27"
+  }
+]

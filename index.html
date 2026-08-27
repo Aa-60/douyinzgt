@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的工作台</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --red: #2563eb;
+      --red-2: #3b82f6;
+      --red-light: #eef4ff;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #1d1d1f;
+      --muted: #8e8e93;
+      --border: #e5e5ea;
+      --shadow: 0 4px 20px rgba(0,0,0,0.06);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 230px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 20px; font-weight: 800;
+    }
+    .brand .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--red); color: #fff;
+      display: grid; place-items: center; font-size: 18px;
+    }
+    .menu { display: flex; flex-direction: column; gap: 6px; }
+    .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 12px;
+      background: transparent; border: none;
+      color: var(--muted); font-size: 15px; cursor: pointer;
+      text-align: left;
+    }
+    .menu-item:hover { background: var(--red-light); color: var(--red); }
+    .menu-item.active { background: var(--red); color: #fff; font-weight: 600; }
+    .menu-icon { width: 20px; text-align: center; }
+
+    /* Main */
+    main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 72px; background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 { font-size: 20px; margin: 0; }
+    .topbar p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    .search {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px 14px; width: 300px;
+    }
+    .search input { border: none; background: transparent; outline: none; font-size: 14px; width: 100%; }
+
+    .content { padding: 24px 28px; overflow: auto; flex: 1; }
+    .view { display: none; animation: fade .25s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(105deg, var(--red), var(--red-2));
+      color: #fff; border-radius: var(--radius);
+      padding: 28px 32px; display: flex; justify-content: space-between; align-items: center;
+      box-shadow: var(--shadow); margin-bottom: 22px;
+    }
+    .hero h2 { margin: 0 0 6px; font-size: 24px; }
+    .hero p { margin: 0 0 18px; opacity: .92; font-size: 14px; }
+    .hero-actions { display: flex; gap: 10px; }
+    .btn {
+      padding: 9px 16px; border-radius: 10px; border: none; font-size: 14px; cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-light { background: #fff; color: var(--red); }
+    .btn-ghost { background: rgba(255,255,255,.2); color: #fff; }
+    .hero-icon { width: 80px; height: 80px; border-radius: 20px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: 40px; }
+
+    /* Metrics */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 22px; }
+    .metric {
+      background: var(--card); border-radius: var(--radius); padding: 18px;
+      box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px;
+    }
+    .metric .num { font-size: 30px; font-weight: 800; color: var(--red); }
+    .metric .label { font-size: 13px; color: var(--muted); }
+
+    /* Cards grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .card {
+      background: var(--card); border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .card-title { font-size: 16px; font-weight: 700; margin: 0; }
+    .card-more { font-size: 13px; color: var(--red); cursor: pointer; }
+
+    /* Quick links */
+    .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .quick-item {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 10px; border-radius: 14px; border: 1px solid var(--border);
+      text-decoration: none; color: var(--text); transition: .15s;
+    }
+    .quick-item:hover { border-color: var(--red); background: var(--red-light); }
+    .quick-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--red-light); color: var(--red); display: grid; place-items: center; font-size: 20px; }
+    .quick-label { font-size: 13px; font-weight: 600; }
+
+    /* Link groups */
+    .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .group { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+    .group h4 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .link {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; border-radius: 10px; text-decoration: none;
+      color: var(--text); background: var(--bg); margin-bottom: 8px; font-size: 14px;
+    }
+    .link:hover { outline: 1px solid var(--red); }
+    .link .hint { color: var(--muted); font-size: 12px; }
+
+    /* Data panel */
+    .panels { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    .chart-box { height: 240px; }
+
+    /* Files */
+    .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .file-card {
+      background: var(--card); border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
+    }
+    .file-card .ftype { font-size: 12px; color: var(--red); font-weight: 600; }
+    .file-card a { color: var(--text); text-decoration: none; font-weight: 600; word-break: break-all; }
+    .file-card .fmeta { color: var(--muted); font-size: 12px; }
+
+    .empty { color: var(--muted); font-size: 14px; padding: 20px; text-align: center; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--red-light); color: var(--red); font-size: 12px; }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-soft { background: var(--red-light); color: var(--red); font-weight: 600; }
+    .sel-input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; background: var(--bg); }
+    .sel-input:focus { border-color: var(--red); }
+    textarea.sel-input { resize: vertical; min-height: 60px; }
+    .risk-low { color: #16a34a; font-weight: 600; }
+    .risk-mid { color: #f59e0b; font-weight: 600; }
+    .risk-high { color: #dc2626; font-weight: 700; }
+    .link-del { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 13px; }
+    #selPager { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .pg { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 13px; }
+    .pg:disabled { opacity: .4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">🐾</div><div>我的工作台</div></div>
+    <nav class="menu">
+      <button class="menu-item active" data-view="dashboard"><span class="menu-icon">🏠</span>工作台首页</button>
+      <button class="menu-item" data-view="data"><span class="menu-icon">📊</span>数据面板</button>
+      <button class="menu-item" data-view="files"><span class="menu-icon">🗂</span>资源中枢</button>
+      <button class="menu-item" data-view="selection"><span class="menu-icon">🛍</span>选品库</button>
+      <button class="menu-item" data-view="hot-architecture"><span class="menu-icon">🧩</span>爆款内容架构</button>
+      <button class="menu-item" data-view="hot-product"><span class="menu-icon">💥</span>爆品打磨</button>
+      <button class="menu-item" data-view="knowledge"><span class="menu-icon">📚</span>知识库</button>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">工作台首页</h1>
+        <p>本地内容运营工作台 · 数据需自行替换</p>
+      </div>
+      <div class="search"><span>🔍</span><input id="search" type="text" placeholder="搜索导航、数据、资源…" /></div>
+    </header>
+
+    <div class="content">
+      <section id="view-dashboard" class="view active">
+        <div class="hero">
+          <div>
+            <h2 id="greeting">下午好，开始今天的工作吧</h2>
+            <p>把常用工具、数据面板、资源文件集中在一处，减少来回切换。</p>
+            <div class="hero-actions">
+              <button class="btn btn-light" onclick="switchView('data')">查看数据面板</button>
+              <button class="btn btn-ghost" onclick="switchView('files')">进入资源中枢</button>
+            </div>
+          </div>
+          <div class="hero-icon">🚀</div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><div class="num" id="m-links">-</div><div class="label">导航链接</div></div>
+          <div class="metric"><div class="num" id="m-data">-</div><div class="label">数据面板</div></div>
+          <div class="metric"><div class="num" id="m-files">-</div><div class="label">资源文件</div></div>
+          <div class="metric"><div class="num" id="m-today">-</div><div class="label">今日待办</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">🧭 快速开始</h3><span class="card-more" onclick="switchView('dashboard-groups')">全部链接 →</span></div>
+            <div class="quick-grid" id="quickGrid"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">💡 今日创作建议</h3><span class="tag">示例</span></div>
+            <p style="margin:0;font-size:14px;line-height:1.7;color:#555;">
+              如果没有真实体验，就写成资料整理或问题清单，不冒充亲测。<br>
+              优先使用你亲自经历过的素材，结合「职场成长」方向发布。
+            </p>
+          </div>
+        </div>
+
+        <div class="groups" id="dashGroups"></div>
+      </section>
+
+      <section id="view-data" class="view">
+        <div class="panels" id="dataPanels"></div>
+      </section>
+
+      <section id="view-files" class="view">
+        <div class="file-grid" id="fileGrid"></div>
+      </section>
+
+      <section id="view-selection" class="view">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3 class="card-title">➕ 录入今日选品</h3><span class="tag">本机保存</span></div>
+          <form id="selForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <input class="sel-input" id="f-pid" placeholder="商品ID *" required>
+            <input class="sel-input" id="f-purl" placeholder="商品链接">
+            <input class="sel-input" id="f-surl" placeholder="店铺链接">
+            <input class="sel-input" id="f-price" placeholder="价格 (如 ¥29)">
+            <input class="sel-input" id="f-comm" placeholder="佣金 (如 20% / ¥5)">
+            <input class="sel-input" id="f-pscore" placeholder="商品评分 (1-5)" type="number" min="1" max="5" step="0.1">
+            <input class="sel-input" id="f-sscore" placeholder="店铺评分 (1-5)" type="number" min="1" max="5" step="0.1">
+            <select class="sel-input" id="f-risk">
+              <option value="低">风险：低</option>
+              <option value="中">风险：中</option>
+              <option value="高">风险：高</option>
+            </select>
+            <textarea class="sel-input" id="f-note" placeholder="备注：选品理由 / 卖点 / 注意项" style="grid-column:span 3;"></textarea>
+            <button class="btn btn-primary" type="submit" style="grid-column:span 3;">保存选品</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title">📦 选品清单</h3>
+            <div>
+              <select class="sel-input" id="sel-time-filter" style="width:130px;display:inline-block;">
+                <option value="">全部时间</option>
+                <option value="today">今天</option>
+                <option value="7">近7天</option>
+                <option value="30">近30天</option>
+                <option value="month">本月</option>
+              </select>
+              <select class="sel-input" id="sel-risk-filter" style="width:120px;display:inline-block;">
+                <option value="">全部风险</option>
+                <option value="低">低</option><option value="中">中</option><option value="高">高</option>
+              </select>
+              <select class="sel-input" id="sel-score-filter" style="width:150px;display:inline-block;">
+                <option value="">商品评分不限</option>
+                <option value="4">商品评分 ≥ 4</option>
+                <option value="4.5">商品评分 ≥ 4.5</option>
+                <option value="4.8">商品评分 ≥ 4.8</option>
+              </select>
+              <button class="btn btn-soft" id="btn-import-json">导入JSON</button>
+              <button class="btn btn-soft" id="btn-export-json">导出JSON</button>
+              <button class="btn btn-soft" id="btn-export-csv">导出CSV</button>
+            </div>
+          </div>
+          <div id="selStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
+          <table>
+            <thead><tr><th>日期</th><th>商品ID</th><th>商品链接</th><th>店铺链接</th><th>价格</th><th>佣金</th><th>商品评分</th><th>店铺评分</th><th>风险</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody id="selBody"></tbody>
+          </table>
+          <div id="selPager"></div>
+        </div>
+      </section>
+
+      <section id="view-hot-architecture" class="view">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3 class="card-title">🧩 录入爆款内容架构</h3><span class="tag">本机保存</span></div>
+          <form id="haForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <input class="sel-input" id="ha-title" placeholder="爆款标题 *" required>
+            <input class="sel-input" id="ha-link" placeholder="视频/笔记链接">
+            <select class="sel-input" id="ha-platform">
+              <option value="抖音">平台：抖音</option>
+              <option value="小红书">平台：小红书</option>
+              <option value="快手">平台：快手</option>
+              <option value="YouTube">平台：YouTube</option>
+              <option value="其他">平台：其他</option>
+            </select>
+            <input class="sel-input" id="ha-cover" placeholder="封面描述 / 视觉要素">
+            <input class="sel-input" id="ha-hook" placeholder="前 3 秒钩子">
+            <input class="sel-input" id="ha-structure" placeholder="文案结构（痛点→方案→信任→行动）">
+            <input class="sel-input" id="ha-selling" placeholder="产品卖点">
+            <input class="sel-input" id="ha-price" placeholder="价格带">
+            <input class="sel-input" id="ha-tags" placeholder="标签 / 话题">
+            <textarea class="sel-input" id="ha-notes" placeholder="可复用的结构 / 翻拍注意点" style="grid-column:span 3;"></textarea>
+            <button class="btn btn-primary" type="submit" style="grid-column:span 3;">保存爆款架构</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title">📝 爆款清单</h3>
+            <div>
+              <select class="sel-input" id="ha-time-filter" style="width:130px;display:inline-block;">
+                <option value="">全部时间</option>
+                <option value="today">今天</option>
+                <option value="7">近7天</option>
+                <option value="30">近30天</option>
+                <option value="month">本月</option>
+              </select>
+              <select class="sel-input" id="ha-platform-filter" style="width:120px;display:inline-block;">
+                <option value="">全部平台</option>
+                <option value="抖音">抖音</option>
+                <option value="小红书">小红书</option>
+                <option value="快手">快手</option>
+                <option value="YouTube">YouTube</option>
+                <option value="其他">其他</option>
+              </select>
+              <button class="btn btn-soft" id="btn-import-ha-json">导入JSON</button>
+              <button class="btn btn-soft" id="btn-export-ha-json">导出JSON</button>
+              <button class="btn btn-soft" id="btn-export-ha-csv">导出CSV</button>
+            </div>
+          </div>
+          <div id="haStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
+          <table>
+            <thead><tr><th>日期</th><th>平台</th><th>标题</th><th>钩子</th><th>卖点</th><th>价格带</th><th>标签</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody id="haBody"></tbody>
+          </table>
+          <div id="haPager"></div>
+        </div>
+      </section>
+
+      <section id="view-hot-product" class="view">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3 class="card-title">💥 录入爆品（多角度打磨）</h3><span class="tag">本机保存</span></div>
+          <div id="hpImportBox" style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:14px;">
+            <select class="sel-input" id="hp-import-select">
+              <option value="">📥 从选品库导入商品…</option>
+            </select>
+            <button class="btn btn-soft" type="button" id="btn-hp-import">导入</button>
+          </div>
+          <form id="hpForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <input class="sel-input" id="hp-pid" placeholder="商品ID / 名称 *" required>
+            <select class="sel-input" id="hp-platform">
+              <option value="抖音">平台：抖音</option>
+              <option value="小红书">平台：小红书</option>
+              <option value="快手">平台：快手</option>
+              <option value="其他">平台：其他</option>
+            </select>
+            <select class="sel-input" id="hp-status">
+              <option value="待完善">状态：待完善</option>
+              <option value="可用">状态：可用</option>
+              <option value="已发布">状态：已发布</option>
+            </select>
+            <input class="sel-input" id="hp-selling" placeholder="核心卖点">
+            <input class="sel-input" id="hp-angle1" placeholder="角度1：使用场景">
+            <input class="sel-input" id="hp-angle2" placeholder="角度2：人群痛点">
+            <input class="sel-input" id="hp-angle3" placeholder="角度3：价格/对比">
+            <input class="sel-input" id="hp-link" placeholder="商品/参考链接">
+            <input class="sel-input" id="hp-price" placeholder="价格">
+            <textarea class="sel-input" id="hp-notes" placeholder="文案模板 / 拍摄建议" style="grid-column:span 3;"></textarea>
+            <button class="btn btn-primary" type="submit" style="grid-column:span 3;">保存爆品</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title">💎 爆品清单</h3>
+            <div>
+              <select class="sel-input" id="hp-time-filter" style="width:130px;display:inline-block;">
+                <option value="">全部时间</option>
+                <option value="today">今天</option>
+                <option value="7">近7天</option>
+                <option value="30">近30天</option>
+                <option value="month">本月</option>
+              </select>
+              <select class="sel-input" id="hp-status-filter" style="width:120px;display:inline-block;">
+                <option value="">全部状态</option>
+                <option value="待完善">待完善</option>
+                <option value="可用">可用</option>
+                <option value="已发布">已发布</option>
+              </select>
+              <button class="btn btn-soft" id="btn-import-hp-json">导入JSON</button>
+              <button class="btn btn-soft" id="btn-export-hp-json">导出JSON</button>
+              <button class="btn btn-soft" id="btn-export-hp-csv">导出CSV</button>
+            </div>
+          </div>
+          <div id="hpStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
+          <table>
+            <thead><tr><th>日期</th><th>商品</th><th>平台</th><th>状态</th><th>卖点</th><th>角度1</th><th>角度2</th><th>角度3</th><th>操作</th></tr></thead>
+            <tbody id="hpBody"></tbody>
+          </table>
+          <div id="hpPager"></div>
+        </div>
+      </section>
+
+      <section id="view-knowledge" class="view">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3 class="card-title">📚 录入知识点</h3><span class="tag">本机保存</span></div>
+          <form id="kbForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <input class="sel-input" id="kb-title" placeholder="标题 *" required>
+            <select class="sel-input" id="kb-category">
+              <option value="选品">分类：选品</option>
+              <option value="运营">分类：运营</option>
+              <option value="文案">分类：文案</option>
+              <option value="素材">分类：素材</option>
+              <option value="工具">分类：工具</option>
+              <option value="其他">分类：其他</option>
+            </select>
+            <input class="sel-input" id="kb-tags" placeholder="标签（用空格分隔）">
+            <input class="sel-input" id="kb-source" placeholder="来源 / 出处链接" style="grid-column:span 2;">
+            <textarea class="sel-input" id="kb-content" placeholder="知识点内容 / 笔记" style="grid-column:span 3;min-height:100px;"></textarea>
+            <button class="btn btn-primary" type="submit" style="grid-column:span 3;">保存知识</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title">🧠 知识库</h3>
+            <div>
+              <select class="sel-input" id="kb-time-filter" style="width:130px;display:inline-block;">
+                <option value="">全部时间</option>
+                <option value="today">今天</option>
+                <option value="7">近7天</option>
+                <option value="30">近30天</option>
+                <option value="month">本月</option>
+              </select>
+              <select class="sel-input" id="kb-category-filter" style="width:120px;display:inline-block;">
+                <option value="">全部分类</option>
+                <option value="选品">选品</option>
+                <option value="运营">运营</option>
+                <option value="文案">文案</option>
+                <option value="素材">素材</option>
+                <option value="工具">工具</option>
+                <option value="其他">其他</option>
+              </select>
+              <button class="btn btn-soft" id="btn-import-kb-json">导入JSON</button>
+              <button class="btn btn-soft" id="btn-export-kb-json">导出JSON</button>
+              <button class="btn btn-soft" id="btn-export-kb-csv">导出CSV</button>
+            </div>
+          </div>
+          <div id="kbStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
+          <table>
+            <thead><tr><th>日期</th><th>分类</th><th>标题</th><th>标签</th><th>来源</th><th>内容摘要</th><th>操作</th></tr></thead>
+            <tbody id="kbBody"></tbody>
+          </table>
+          <div id="kbPager"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // ---------- Default data (used if JSON fetch fails, e.g. file://) ----------
+    const defaultConfig = {
+      siteTitle: "我的工作台",
+      greeting: "下午好，开始今天的工作吧",
+      navGroups: [
+        { title: "电商运营", icon: "🛒", links: [
+          { label: "1688 国际站", url: "https://www.alibaba.com", hint: "店铺后台" },
+          { label: "影刀 RPA", url: "https://www.yingdao.com", hint: "图片银行上传" },
+          { label: "alibaba_offline 工具", url: "#", hint: "本地数据" }
+        ]},
+        { title: "内容创作", icon: "🎬", links: [
+          { label: "YouTube Studio", url: "https://studio.youtube.com", hint: "YEM 频道" },
+          { label: "剪映", url: "#", hint: "本地草稿" },
+          { label: "MoneyPrinterTurbo", url: "#", hint: "AI 视频生成" }
+        ]},
+        { title: "效率工具", icon: "🧰", links: [
+          { label: "pixelcraft 抠图", url: "#", hint: "换背景" },
+          { label: "Book Hunter", url: "#", hint: "电子书" },
+          { label: "WorkBuddy", url: "#", hint: "AI 助手" }
+        ]},
+        { title: "学习 & 副业", icon: "📚", links: [
+          { label: "抖音选品", url: "#", hint: "巨量百应" },
+          { label: "GitHub", url: "https://github.com", hint: "代码仓库" }
+        ]}
+      ]
+    };
+
+    const defaultData = {
+      title: "抖音选品 · 近 7 日爆款示例",
+      description: "此数据为演示，请替换 data/selection.json 为你自己的选品数据。",
+      table: {
+        columns: ["品类", "商品", "价格带", "GMV(万)", "涨粉", "状态"],
+        rows: [
+          ["家居", "便携榨汁杯", "¥29-39", 12.5, "+2.3w", "🔥 爆"],
+          ["美妆", "持妆气垫", "¥59-89", 8.7, "+1.1w", "📈 稳"],
+          ["数码", "手机支架", "¥9-15", 6.3, "+0.8w", "📈 稳"],
+          ["食品", "低卡零食", "¥19-29", 4.1, "+0.5w", "➡️ 平"]
+        ]
+      },
+      chart: {
+        type: "bar",
+        labels: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+        datasets: [
+          { label: "GMV(万)", data: [3.2, 4.5, 6.1, 5.8, 8.2, 12.5, 9.7], backgroundColor: "#2563eb" }
+        ]
+      }
+    };
+
+    const defaultResources = [
+      { name: "示例图片", type: "image", path: "resources/sample.txt", desc: "请把真实资源放进 resources/ 文件夹并在 manifest.json 登记", date: "2026-08-27" }
+    ];
+
+    // ---------- State ----------
+    let config = defaultConfig;
+    let dataPanels = [defaultData];
+    let files = defaultResources;
+    let chartInstance = null;
+
+    // ---------- Helpers ----------
+    function switchView(name) {
+      document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const map = { dashboard: 'dashboard', data: 'data', files: 'files', selection: 'selection', 'hot-architecture': 'hot-architecture', 'hot-product': 'hot-product', knowledge: 'knowledge' };
+      const viewId = 'view-' + (map[name] || name);
+      document.getElementById(viewId)?.classList.add('active');
+      const btn = document.querySelector(`.menu-item[data-view="${map[name] || name}"]`);
+      if (btn) btn.classList.add('active');
+      const titles = { dashboard: '工作台首页', data: '数据面板', files: '资源中枢', selection: '选品库', 'hot-architecture': '爆款内容架构', 'hot-product': '爆品打磨', knowledge: '知识库' };
+      document.getElementById('pageTitle').textContent = titles[name] || '工作台';
+      if (name === 'data') renderData();
+      if (name === 'hot-product') refreshHpImportSelect();
+    }
+
+    function greeting() {
+      const h = new Date().getHours();
+      let t = '晚上好';
+      if (h < 12) t = '上午好';
+      else if (h < 18) t = '下午好';
+      document.getElementById('greeting').textContent = `${t}，开始今天的工作吧`;
+    }
+
+    // ---------- Render ----------
+    function renderNav() {
+      const quick = config.navGroups.slice(0, 4).map(g => ({ label: g.title, icon: g.icon }));
+      document.getElementById('quickGrid').innerHTML = quick.map(q => `
+        <a class="quick-item" href="#" onclick="switchView('dashboard');return false;">
+          <div class="quick-icon">${q.icon}</div><div class="quick-label">${q.label}</div>
+        </a>
+      `).join('');
+
+      const groupsHtml = config.navGroups.map(g => `
+        <div class="group">
+          <h4>${g.icon} ${g.title}</h4>
+          ${g.links.map(l => `
+            <a class="link" href="${l.url}" target="_blank" rel="noopener">
+              <span>${l.label}</span><span class="hint">${l.hint || ''}</span>
+            </a>
+          `).join('')}
+        </div>
+      `).join('');
+      document.getElementById('dashGroups').innerHTML = groupsHtml;
+
+      let totalLinks = config.navGroups.reduce((s, g) => s + g.links.length, 0);
+      document.getElementById('m-links').textContent = totalLinks;
+    }
+
+    function renderData() {
+      const container = document.getElementById('dataPanels');
+      container.innerHTML = dataPanels.map((panel, idx) => {
+        let tableHtml = '', chartHtml = '';
+        if (panel.table) {
+          tableHtml = `<table><thead><tr>${panel.table.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>` +
+            panel.table.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') + '</tbody></table>';
+        }
+        if (panel.chart) {
+          chartHtml = `<div class="chart-box"><canvas id="chart-${idx}"></canvas></div>`;
+        }
+        return `
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">${panel.title}</h3>${panel.tag ? `<span class="tag">${panel.tag}</span>` : ''}</div>
+            ${panel.description ? `<p class="desc" style="margin:0 0 12px;color:#8e8e93;font-size:13px;">${panel.description}</p>` : ''}
+            ${chartHtml}
+            ${tableHtml}
+          </div>
+        `;
+      }).join('');
+
+      // init charts
+      dataPanels.forEach((panel, idx) => {
+        if (!panel.chart) return;
+        const ctx = document.getElementById(`chart-${idx}`).getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type: panel.chart.type,
+          data: {
+            labels: panel.chart.labels,
+            datasets: panel.chart.datasets.map(ds => ({
+              label: ds.label,
+              data: ds.data,
+              backgroundColor: ds.backgroundColor || '#2563eb',
+              borderRadius: 6
+            }))
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true } },
+            scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } }
+          }
+        });
+      });
+    }
+
+    function renderFiles() {
+      const grid = document.getElementById('fileGrid');
+      if (!files.length) {
+        grid.innerHTML = '<div class="empty">暂无资源文件。请将文件放入 resources/ 并更新 manifest.json。</div>';
+        return;
+      }
+      grid.innerHTML = files.map(f => `
+        <div class="file-card">
+          <div class="ftype">${f.type.toUpperCase()}</div>
+          <a href="${f.path}" target="_blank" rel="noopener">${f.name}</a>
+          <div class="fmeta">${f.date || ''} · ${f.desc || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    function updateMetrics() {
+      document.getElementById('m-data').textContent = dataPanels.length;
+      document.getElementById('m-files').textContent = files.length;
+      document.getElementById('m-today').textContent = 0;
+    }
+
+    // ---------- Selection (选品库) ----------
+    function fmtDate(d) { const off = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - off).toISOString().slice(0, 10); }
+    function todayStr() { return fmtDate(new Date()); }
+    let selectionItems = [];
+    let selPage = 1;
+    function loadSelection() {
+      try { selectionItems = JSON.parse(localStorage.getItem('selection_items') || '[]'); }
+      catch (e) { selectionItems = []; }
+    }
+    function saveSelection() { localStorage.setItem('selection_items', JSON.stringify(selectionItems)); }
+    function renderSelection() {
+      const riskFilter = document.getElementById('sel-risk-filter').value;
+      const tf = document.getElementById('sel-time-filter').value;
+      const scoreFilter = document.getElementById('sel-score-filter').value;
+      let list = selectionItems;
+      if (tf) {
+        if (tf === 'today') list = list.filter(it => it.date === todayStr());
+        else if (tf === 'month') { const ym = todayStr().slice(0, 7); list = list.filter(it => it.date && it.date.slice(0, 7) === ym); }
+        else { const n = parseInt(tf, 10); const t = new Date(); t.setDate(t.getDate() - (n - 1)); const ts = fmtDate(t); list = list.filter(it => it.date >= ts); }
+      }
+      list = list.filter(it => !riskFilter || it.risk === riskFilter);
+      if (scoreFilter) { const min = parseFloat(scoreFilter); list = list.filter(it => it.pscore && parseFloat(it.pscore) >= min); }
+
+      const pageSize = 10;
+      const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (selPage > totalPages) selPage = totalPages;
+      if (selPage < 1) selPage = 1;
+      const pageItems = list.slice((selPage - 1) * pageSize, selPage * pageSize);
+
+      const body = document.getElementById('selBody');
+      if (!pageItems.length) {
+        body.innerHTML = '<tr><td colspan="11" class="empty">没有符合条件的选品记录。</td></tr>';
+      } else {
+        body.innerHTML = pageItems.map(it => `
+          <tr>
+            <td>${it.date}</td>
+            <td>${it.pid}</td>
+            <td>${it.purl ? `<a href="${it.purl}" target="_blank" rel="noopener">打开</a>` : '-'}</td>
+            <td>${it.surl ? `<a href="${it.surl}" target="_blank" rel="noopener">打开</a>` : '-'}</td>
+            <td>${it.price || '-'}</td>
+            <td>${it.comm || '-'}</td>
+            <td>${it.pscore || '-'}</td>
+            <td>${it.sscore || '-'}</td>
+            <td><span class="risk-${it.risk === '高' ? 'high' : it.risk === '中' ? 'mid' : 'low'}">${it.risk}</span></td>
+            <td>${it.note || '-'}</td>
+            <td><button class="link-del" data-id="${it.id}">删除</button></td>
+          </tr>`).join('');
+        body.querySelectorAll('.link-del').forEach(b => b.onclick = () => {
+          selectionItems = selectionItems.filter(x => x.id !== b.dataset.id);
+          saveSelection(); renderSelection();
+        });
+      }
+
+      const todayCount = list.filter(i => i.date === todayStr()).length;
+      const highRisk = list.filter(i => i.risk === '高').length;
+      document.getElementById('selStats').textContent = `当前显示 ${list.length} 条 · 今日 ${todayCount} 条 · 高风险 ${highRisk} 条`;
+
+      const pager = document.getElementById('selPager');
+      if (totalPages <= 1) { pager.innerHTML = ''; }
+      else {
+        pager.innerHTML = `<span style="margin-right:8px;">第 ${selPage}/${totalPages} 页 · 共 ${list.length} 条</span>` +
+          `<button class="pg" data-p="prev" ${selPage === 1 ? 'disabled' : ''}>上一页</button>` +
+          `<button class="pg" data-p="next" ${selPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+        pager.querySelectorAll('.pg').forEach(b => b.onclick = () => {
+          if (b.disabled) return;
+          selPage = b.dataset.p === 'prev' ? selPage - 1 : selPage + 1;
+          renderSelection();
+        });
+      }
+    }
+    function addItem(e) {
+      e.preventDefault();
+      const pid = document.getElementById('f-pid').value.trim();
+      if (!pid) { alert('商品ID必填'); return; }
+      selectionItems.unshift({
+        id: 's_' + Date.now(),
+        date: todayStr(),
+        pid,
+        purl: document.getElementById('f-purl').value.trim(),
+        surl: document.getElementById('f-surl').value.trim(),
+        price: document.getElementById('f-price').value.trim(),
+        comm: document.getElementById('f-comm').value.trim(),
+        pscore: document.getElementById('f-pscore').value.trim(),
+        sscore: document.getElementById('f-sscore').value.trim(),
+        risk: document.getElementById('f-risk').value,
+        note: document.getElementById('f-note').value.trim()
+      });
+      saveSelection();
+      selPage = 1;
+      document.getElementById('selForm').reset();
+      renderSelection();
+    }
+    function exportSelection(type) {
+      if (!selectionItems.length) { alert('暂无数据可导出'); return; }
+      let content, mime, ext;
+      if (type === 'json') {
+        content = JSON.stringify(selectionItems, null, 2);
+        mime = 'application/json'; ext = 'json';
+      } else {
+        const headers = ['date', 'pid', 'purl', 'surl', 'price', 'comm', 'pscore', 'sscore', 'risk', 'note'];
+        const rows = selectionItems.map(it => headers.map(h => '"' + (it[h] || '').replace(/"/g, '""') + '"').join(','));
+        content = '﻿' + headers.join(',') + '\n' + rows.join('\n');
+        mime = 'text/csv'; ext = 'csv';
+      }
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'selection_' + new Date().toISOString().slice(0, 10) + '.' + ext;
+      a.click();
+    }
+    // 通用：从本地 JSON 文件导入并合并到 localStorage（按 id 去重）
+    function importFromFile(opts) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (!Array.isArray(data)) throw new Error('文件不是数组格式');
+            const existing = JSON.parse(localStorage.getItem(opts.key) || '[]');
+            const map = new Map(existing.map(it => [it.id, it]));
+            let added = 0;
+            data.forEach(it => {
+              if (!it || typeof it !== 'object') return;
+              if (!it.id) it.id = opts.key + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+              if (!map.has(it.id)) { map.set(it.id, it); added++; }
+            });
+            localStorage.setItem(opts.key, JSON.stringify(Array.from(map.values())));
+            opts.render();
+            alert('导入完成：新增 ' + added + ' 条，合计 ' + map.size + ' 条（重复项已自动跳过）。');
+          } catch (err) {
+            alert('导入失败：' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+
+    // ---------- Hot Architecture (爆款内容架构) ----------
+    let haItems = [];
+    let haPage = 1;
+    function loadHotArchitecture() { try { haItems = JSON.parse(localStorage.getItem('hot_architecture') || '[]'); } catch(e){ haItems = []; } }
+    function saveHotArchitecture() { localStorage.setItem('hot_architecture', JSON.stringify(haItems)); }
+    function renderHotArchitecture() {
+      const pf = document.getElementById('ha-platform-filter').value;
+      const tf = document.getElementById('ha-time-filter').value;
+      let list = haItems;
+      if (tf) {
+        if (tf === 'today') list = list.filter(it => it.date === todayStr());
+        else if (tf === 'month') { const ym = todayStr().slice(0, 7); list = list.filter(it => it.date && it.date.slice(0, 7) === ym); }
+        else { const n = parseInt(tf, 10); const t = new Date(); t.setDate(t.getDate() - (n - 1)); const ts = fmtDate(t); list = list.filter(it => it.date >= ts); }
+      }
+      list = list.filter(it => !pf || it.platform === pf);
+
+      const pageSize = 10;
+      const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (haPage > totalPages) haPage = totalPages;
+      if (haPage < 1) haPage = 1;
+      const pageItems = list.slice((haPage - 1) * pageSize, haPage * pageSize);
+
+      const body = document.getElementById('haBody');
+      if (!pageItems.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">没有爆款记录。</td></tr>';
+      } else {
+        body.innerHTML = pageItems.map(it => `
+          <tr>
+            <td>${it.date}</td>
+            <td>${it.platform}</td>
+            <td>${it.link ? `<a href="${it.link}" target="_blank" rel="noopener">${it.title}</a>` : it.title}</td>
+            <td>${it.hook || '-'}</td>
+            <td>${it.selling || '-'}</td>
+            <td>${it.price || '-'}</td>
+            <td>${it.tags || '-'}</td>
+            <td>${it.notes || '-'}</td>
+            <td><button class="link-del" data-id="${it.id}">删除</button></td>
+          </tr>`).join('');
+        body.querySelectorAll('.link-del').forEach(b => b.onclick = () => {
+          haItems = haItems.filter(x => x.id !== b.dataset.id);
+          saveHotArchitecture(); renderHotArchitecture();
+        });
+      }
+
+      const todayCount = list.filter(i => i.date === todayStr()).length;
+      document.getElementById('haStats').textContent = `当前显示 ${list.length} 条 · 今日 ${todayCount} 条`;
+
+      const pager = document.getElementById('haPager');
+      if (totalPages <= 1) { pager.innerHTML = ''; }
+      else {
+        pager.innerHTML = `<span style="margin-right:8px;">第 ${haPage}/${totalPages} 页 · 共 ${list.length} 条</span>` +
+          `<button class="pg" data-p="prev" ${haPage === 1 ? 'disabled' : ''}>上一页</button>` +
+          `<button class="pg" data-p="next" ${haPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+        pager.querySelectorAll('.pg').forEach(b => b.onclick = () => {
+          if (b.disabled) return;
+          haPage = b.dataset.p === 'prev' ? haPage - 1 : haPage + 1;
+          renderHotArchitecture();
+        });
+      }
+    }
+    function addHotArchitecture(e) {
+      e.preventDefault();
+      const title = document.getElementById('ha-title').value.trim();
+      if (!title) { alert('标题必填'); return; }
+      haItems.unshift({
+        id: 'ha_' + Date.now(),
+        date: todayStr(),
+        title,
+        link: document.getElementById('ha-link').value.trim(),
+        platform: document.getElementById('ha-platform').value,
+        cover: document.getElementById('ha-cover').value.trim(),
+        hook: document.getElementById('ha-hook').value.trim(),
+        structure: document.getElementById('ha-structure').value.trim(),
+        selling: document.getElementById('ha-selling').value.trim(),
+        price: document.getElementById('ha-price').value.trim(),
+        tags: document.getElementById('ha-tags').value.trim(),
+        notes: document.getElementById('ha-notes').value.trim()
+      });
+      saveHotArchitecture();
+      haPage = 1;
+      document.getElementById('haForm').reset();
+      renderHotArchitecture();
+    }
+    function exportHotArchitecture(type) {
+      if (!haItems.length) { alert('暂无数据可导出'); return; }
+      let content, mime, ext;
+      if (type === 'json') {
+        content = JSON.stringify(haItems, null, 2);
+        mime = 'application/json'; ext = 'json';
+      } else {
+        const headers = ['date','title','link','platform','cover','hook','structure','selling','price','tags','notes'];
+        const rows = haItems.map(it => headers.map(h => '"' + (it[h] || '').replace(/"/g, '""') + '"').join(','));
+        content = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+        mime = 'text/csv'; ext = 'csv';
+      }
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'hot_architecture_' + new Date().toISOString().slice(0, 10) + '.' + ext;
+      a.click();
+    }
+
+    // ---------- Hot Product (爆品打磨) ----------
+    let hpItems = [];
+    let hpPage = 1;
+    function loadHotProduct() { try { hpItems = JSON.parse(localStorage.getItem('hot_products') || '[]'); } catch(e){ hpItems = []; } }
+    function saveHotProduct() { localStorage.setItem('hot_products', JSON.stringify(hpItems)); }
+    function refreshHpImportSelect() {
+      const select = document.getElementById('hp-import-select');
+      if (!select) return;
+      const saved = JSON.parse(localStorage.getItem('selection_items') || '[]');
+      if (!saved.length) {
+        select.innerHTML = '<option value="">选品库为空，先去「选品库」添加商品</option>';
+        return;
+      }
+      select.innerHTML = '<option value="">📥 从选品库导入商品…</option>' +
+        saved.map((it, idx) => {
+          const label = `${it.pid}${it.price ? ' · ' + it.price : ''}${it.risk ? ' · 风险' + it.risk : ''}`;
+          return `<option value="${idx}">${label}</option>`;
+        }).join('');
+    }
+    function doHpImport() {
+      const select = document.getElementById('hp-import-select');
+      const idx = select ? parseInt(select.value, 10) : -1;
+      const saved = JSON.parse(localStorage.getItem('selection_items') || '[]');
+      if (isNaN(idx) || idx < 0 || idx >= saved.length) { alert('请先选择一个选品库商品'); return; }
+      const it = saved[idx];
+      document.getElementById('hp-pid').value = it.pid || '';
+      document.getElementById('hp-link').value = it.purl || '';
+      document.getElementById('hp-price').value = it.price || '';
+      document.getElementById('hp-selling').value = it.note || '';
+      document.getElementById('hp-notes').value = (it.note ? '选品备注：' + it.note + '\n' : '') +
+        (it.pscore ? '商品评分：' + it.pscore + '\n' : '') +
+        (it.sscore ? '店铺评分：' + it.sscore + '\n' : '') +
+        (it.comm ? '佣金：' + it.comm + '\n' : '');
+      select.value = '';
+    }
+    function renderHotProduct() {
+      const sf = document.getElementById('hp-status-filter').value;
+      const tf = document.getElementById('hp-time-filter').value;
+      let list = hpItems;
+      if (tf) {
+        if (tf === 'today') list = list.filter(it => it.date === todayStr());
+        else if (tf === 'month') { const ym = todayStr().slice(0, 7); list = list.filter(it => it.date && it.date.slice(0, 7) === ym); }
+        else { const n = parseInt(tf, 10); const t = new Date(); t.setDate(t.getDate() - (n - 1)); const ts = fmtDate(t); list = list.filter(it => it.date >= ts); }
+      }
+      list = list.filter(it => !sf || it.status === sf);
+
+      const pageSize = 10;
+      const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (hpPage > totalPages) hpPage = totalPages;
+      if (hpPage < 1) hpPage = 1;
+      const pageItems = list.slice((hpPage - 1) * pageSize, hpPage * pageSize);
+
+      const body = document.getElementById('hpBody');
+      if (!pageItems.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">没有爆品记录。</td></tr>';
+      } else {
+        body.innerHTML = pageItems.map(it => `
+          <tr>
+            <td>${it.date}</td>
+            <td>${it.link ? `<a href="${it.link}" target="_blank" rel="noopener">${it.pid}</a>` : it.pid}</td>
+            <td>${it.platform}</td>
+            <td>${it.status}</td>
+            <td>${it.selling || '-'}</td>
+            <td>${it.angle1 || '-'}</td>
+            <td>${it.angle2 || '-'}</td>
+            <td>${it.angle3 || '-'}</td>
+            <td><button class="link-del" data-id="${it.id}">删除</button></td>
+          </tr>`).join('');
+        body.querySelectorAll('.link-del').forEach(b => b.onclick = () => {
+          hpItems = hpItems.filter(x => x.id !== b.dataset.id);
+          saveHotProduct(); renderHotProduct();
+        });
+      }
+
+      const todayCount = list.filter(i => i.date === todayStr()).length;
+      const done = list.filter(i => i.status === '已发布').length;
+      document.getElementById('hpStats').textContent = `当前显示 ${list.length} 条 · 今日 ${todayCount} 条 · 已发布 ${done} 条`;
+
+      const pager = document.getElementById('hpPager');
+      if (totalPages <= 1) { pager.innerHTML = ''; }
+      else {
+        pager.innerHTML = `<span style="margin-right:8px;">第 ${hpPage}/${totalPages} 页 · 共 ${list.length} 条</span>` +
+          `<button class="pg" data-p="prev" ${hpPage === 1 ? 'disabled' : ''}>上一页</button>` +
+          `<button class="pg" data-p="next" ${hpPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+        pager.querySelectorAll('.pg').forEach(b => b.onclick = () => {
+          if (b.disabled) return;
+          hpPage = b.dataset.p === 'prev' ? hpPage - 1 : hpPage + 1;
+          renderHotProduct();
+        });
+      }
+    }
+    function addHotProduct(e) {
+      e.preventDefault();
+      const pid = document.getElementById('hp-pid').value.trim();
+      if (!pid) { alert('商品必填'); return; }
+      hpItems.unshift({
+        id: 'hp_' + Date.now(),
+        date: todayStr(),
+        pid,
+        platform: document.getElementById('hp-platform').value,
+        status: document.getElementById('hp-status').value,
+        selling: document.getElementById('hp-selling').value.trim(),
+        angle1: document.getElementById('hp-angle1').value.trim(),
+        angle2: document.getElementById('hp-angle2').value.trim(),
+        angle3: document.getElementById('hp-angle3').value.trim(),
+        link: document.getElementById('hp-link').value.trim(),
+        price: document.getElementById('hp-price').value.trim(),
+        notes: document.getElementById('hp-notes').value.trim()
+      });
+      saveHotProduct();
+      hpPage = 1;
+      document.getElementById('hpForm').reset();
+      renderHotProduct();
+    }
+    function exportHotProduct(type) {
+      if (!hpItems.length) { alert('暂无数据可导出'); return; }
+      let content, mime, ext;
+      if (type === 'json') {
+        content = JSON.stringify(hpItems, null, 2);
+        mime = 'application/json'; ext = 'json';
+      } else {
+        const headers = ['date','pid','platform','status','selling','angle1','angle2','angle3','link','price','notes'];
+        const rows = hpItems.map(it => headers.map(h => '"' + (it[h] || '').replace(/"/g, '""') + '"').join(','));
+        content = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+        mime = 'text/csv'; ext = 'csv';
+      }
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'hot_products_' + new Date().toISOString().slice(0, 10) + '.' + ext;
+      a.click();
+    }
+
+    // ---------- Knowledge (知识库) ----------
+    let kbItems = [];
+    let kbPage = 1;
+    function loadKnowledge() { try { kbItems = JSON.parse(localStorage.getItem('knowledge_base') || '[]'); } catch(e){ kbItems = []; } }
+    function saveKnowledge() { localStorage.setItem('knowledge_base', JSON.stringify(kbItems)); }
+    function renderKnowledge() {
+      const cf = document.getElementById('kb-category-filter').value;
+      const tf = document.getElementById('kb-time-filter').value;
+      let list = kbItems;
+      if (tf) {
+        if (tf === 'today') list = list.filter(it => it.date === todayStr());
+        else if (tf === 'month') { const ym = todayStr().slice(0, 7); list = list.filter(it => it.date && it.date.slice(0, 7) === ym); }
+        else { const n = parseInt(tf, 10); const t = new Date(); t.setDate(t.getDate() - (n - 1)); const ts = fmtDate(t); list = list.filter(it => it.date >= ts); }
+      }
+      list = list.filter(it => !cf || it.category === cf);
+
+      const pageSize = 10;
+      const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (kbPage > totalPages) kbPage = totalPages;
+      if (kbPage < 1) kbPage = 1;
+      const pageItems = list.slice((kbPage - 1) * pageSize, kbPage * pageSize);
+
+      const body = document.getElementById('kbBody');
+      if (!pageItems.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">没有知识记录。</td></tr>';
+      } else {
+        body.innerHTML = pageItems.map(it => {
+          const summary = (it.content || '').length > 50 ? it.content.slice(0, 50) + '...' : (it.content || '-');
+          return `
+          <tr>
+            <td>${it.date}</td>
+            <td>${it.category}</td>
+            <td>${it.title}</td>
+            <td>${it.tags || '-'}</td>
+            <td>${it.source ? (it.source.startsWith('http') ? `<a href="${it.source}" target="_blank" rel="noopener">来源</a>` : it.source) : '-'}</td>
+            <td title="${(it.content || '').replace(/"/g, '&quot;')}">${summary}</td>
+            <td><button class="link-del" data-id="${it.id}">删除</button></td>
+          </tr>`;
+        }).join('');
+        body.querySelectorAll('.link-del').forEach(b => b.onclick = () => {
+          kbItems = kbItems.filter(x => x.id !== b.dataset.id);
+          saveKnowledge(); renderKnowledge();
+        });
+      }
+
+      const todayCount = list.filter(i => i.date === todayStr()).length;
+      document.getElementById('kbStats').textContent = `当前显示 ${list.length} 条 · 今日 ${todayCount} 条`;
+
+      const pager = document.getElementById('kbPager');
+      if (totalPages <= 1) { pager.innerHTML = ''; }
+      else {
+        pager.innerHTML = `<span style="margin-right:8px;">第 ${kbPage}/${totalPages} 页 · 共 ${list.length} 条</span>` +
+          `<button class="pg" data-p="prev" ${kbPage === 1 ? 'disabled' : ''}>上一页</button>` +
+          `<button class="pg" data-p="next" ${kbPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+        pager.querySelectorAll('.pg').forEach(b => b.onclick = () => {
+          if (b.disabled) return;
+          kbPage = b.dataset.p === 'prev' ? kbPage - 1 : kbPage + 1;
+          renderKnowledge();
+        });
+      }
+    }
+    function addKnowledge(e) {
+      e.preventDefault();
+      const title = document.getElementById('kb-title').value.trim();
+      if (!title) { alert('标题必填'); return; }
+      kbItems.unshift({
+        id: 'kb_' + Date.now(),
+        date: todayStr(),
+        title,
+        category: document.getElementById('kb-category').value,
+        tags: document.getElementById('kb-tags').value.trim(),
+        source: document.getElementById('kb-source').value.trim(),
+        content: document.getElementById('kb-content').value.trim()
+      });
+      saveKnowledge();
+      kbPage = 1;
+      document.getElementById('kbForm').reset();
+      renderKnowledge();
+    }
+    function exportKnowledge(type) {
+      if (!kbItems.length) { alert('暂无数据可导出'); return; }
+      let content, mime, ext;
+      if (type === 'json') {
+        content = JSON.stringify(kbItems, null, 2);
+        mime = 'application/json'; ext = 'json';
+      } else {
+        const headers = ['date','title','category','tags','source','content'];
+        const rows = kbItems.map(it => headers.map(h => '"' + (it[h] || '').replace(/"/g, '""') + '"').join(','));
+        content = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+        mime = 'text/csv'; ext = 'csv';
+      }
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'knowledge_' + new Date().toISOString().slice(0, 10) + '.' + ext;
+      a.click();
+    }
+    // ---------- Search ----------
+    document.getElementById('search').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.link, .quick-item, .file-card, .group, .card').forEach(el => {
+        const text = el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+
+    // ---------- Init ----------
+    document.querySelectorAll('.menu-item').forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+    document.getElementById('selForm').addEventListener('submit', addItem);
+    document.getElementById('sel-time-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
+    document.getElementById('sel-risk-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
+    document.getElementById('sel-score-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
+    document.getElementById('btn-import-json').addEventListener('click', () => importFromFile({ key: 'selection_items', render: renderSelection }));
+    document.getElementById('btn-export-json').addEventListener('click', () => exportSelection('json'));
+    document.getElementById('btn-export-csv').addEventListener('click', () => exportSelection('csv'));
+
+    document.getElementById('haForm').addEventListener('submit', addHotArchitecture);
+    document.getElementById('ha-time-filter').addEventListener('change', () => { haPage = 1; renderHotArchitecture(); });
+    document.getElementById('ha-platform-filter').addEventListener('change', () => { haPage = 1; renderHotArchitecture(); });
+    document.getElementById('btn-export-ha-json').addEventListener('click', () => exportHotArchitecture('json'));
+    document.getElementById('btn-export-ha-csv').addEventListener('click', () => exportHotArchitecture('csv'));
+    document.getElementById('btn-import-ha-json').addEventListener('click', () => importFromFile({ key: 'hot_architecture', render: renderHotArchitecture }));
+
+    document.getElementById('hpForm').addEventListener('submit', addHotProduct);
+    document.getElementById('btn-hp-import').addEventListener('click', doHpImport);
+    document.getElementById('hp-time-filter').addEventListener('change', () => { hpPage = 1; renderHotProduct(); });
+    document.getElementById('hp-status-filter').addEventListener('change', () => { hpPage = 1; renderHotProduct(); });
+    document.getElementById('btn-export-hp-json').addEventListener('click', () => exportHotProduct('json'));
+    document.getElementById('btn-export-hp-csv').addEventListener('click', () => exportHotProduct('csv'));
+    document.getElementById('btn-import-hp-json').addEventListener('click', () => importFromFile({ key: 'hot_products', render: renderHotProduct }));
+
+    document.getElementById('kbForm').addEventListener('submit', addKnowledge);
+    document.getElementById('kb-time-filter').addEventListener('change', () => { kbPage = 1; renderKnowledge(); });
+    document.getElementById('kb-category-filter').addEventListener('change', () => { kbPage = 1; renderKnowledge(); });
+    document.getElementById('btn-export-kb-json').addEventListener('click', () => exportKnowledge('json'));
+    document.getElementById('btn-export-kb-csv').addEventListener('click', () => exportKnowledge('csv'));
+    document.getElementById('btn-import-kb-json').addEventListener('click', () => importFromFile({ key: 'knowledge_base', render: renderKnowledge }));
+
+
+    async function load() {
+      try {
+        const c = await fetch('config.json').then(r => r.ok ? r.json() : null);
+        if (c) config = c;
+      } catch (e) { /* use default */ }
+      try {
+        const d = await fetch('data/selection.json').then(r => r.ok ? r.json() : null);
+        if (d) dataPanels = Array.isArray(d) ? d : [d];
+      } catch (e) { /* use default */ }
+      try {
+        const f = await fetch('resources/manifest.json').then(r => r.ok ? r.json() : null);
+        if (f) files = f;
+      } catch (e) { /* use default */ }
+
+      greeting();
+      renderNav();
+      renderFiles();
+      updateMetrics();
+      loadSelection();
+      renderSelection();
+      loadHotArchitecture();
+      renderHotArchitecture();
+      loadHotProduct();
+      renderHotProduct();
+      loadKnowledge();
+      renderKnowledge();
+    }
+    load();
+  </script>
+</body>
+</html>
