@@ -171,9 +171,70 @@
     #selPager { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
     .pg { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 13px; }
     .pg:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Login lock */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+    }
+    .login-card {
+      width: 340px; background: var(--card); border-radius: 16px;
+      padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      text-align: center;
+    }
+    .login-logo { font-size: 44px; margin-bottom: 8px; }
+    .login-card h1 { font-size: 20px; margin: 0 0 4px; color: var(--text); }
+    .login-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+    .login-card .sel-input { margin-bottom: 12px; text-align: center; font-size: 16px; letter-spacing: 2px; }
+    .login-err { color: #dc2626; font-size: 13px; margin-bottom: 10px; }
+    .login-btn { width: 100%; padding: 11px; border: none; border-radius: 10px; background: var(--red); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .login-btn:hover { opacity: .92; }
+    .login-hint { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
+
+    /* Sidebar foot */
+    .sidebar-foot { border-top: 1px solid var(--border); padding: 10px 0; margin-top: auto; }
+
+    /* Modal */
+    .modal-mask { position: fixed; inset: 0; z-index: 9998; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+    .modal { width: 360px; background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .modal h3 { margin: 0 0 16px; font-size: 17px; color: var(--text); }
+    .modal .sel-input { margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .modal-actions .btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .modal-actions .btn-soft { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .modal-actions .btn-primary { background: var(--red); color: #fff; }
   </style>
 </head>
 <body>
+  <!-- Login lock -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-logo">🐾</div>
+      <h1>我的工作台</h1>
+      <p class="login-sub">请输入访问密码</p>
+      <input class="sel-input" id="loginPwd" type="password" placeholder="访问密码" autocomplete="off">
+      <div class="login-err" id="loginErr" style="display:none;">密码不正确，请重试</div>
+      <button class="login-btn" id="loginBtn">登 录</button>
+      <p class="login-hint">纯前端访问锁 · 仅防普通访客</p>
+    </div>
+  </div>
+
+  <!-- Change password modal -->
+  <div class="modal-mask" id="pwdModal" style="display:none;">
+    <div class="modal">
+      <h3>🔑 修改访问密码</h3>
+      <input class="sel-input" id="oldPwd" type="password" placeholder="当前密码">
+      <input class="sel-input" id="newPwd" type="password" placeholder="新密码（至少 6 位）">
+      <input class="sel-input" id="newPwd2" type="password" placeholder="再次输入新密码">
+      <div class="login-err" id="pwdErr" style="display:none;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-soft" id="pwdCancel">取消</button>
+        <button class="btn btn-primary" id="pwdSave">保存</button>
+      </div>
+    </div>
+  </div>
+
   <aside class="sidebar">
     <div class="brand"><div class="logo">🐾</div><div>我的工作台</div></div>
     <nav class="menu">
@@ -185,6 +246,10 @@
       <button class="menu-item" data-view="hot-product"><span class="menu-icon">💥</span>爆品打磨</button>
       <button class="menu-item" data-view="knowledge"><span class="menu-icon">📚</span>知识库</button>
     </nav>
+    <div class="sidebar-foot">
+      <button class="menu-item" id="btnPwd"><span class="menu-icon">🔑</span>修改密码</button>
+      <button class="menu-item" id="btnLogout"><span class="menu-icon">🚪</span>退出登录</button>
+    </div>
   </aside>
 
   <main>
@@ -473,6 +538,96 @@
   </main>
 
   <script>
+    // ---------- Auth (访问密码锁) ----------
+    // 纯前端防君子方案：密码只存 SHA-256 哈希，不存明文。
+    // 默认密码哈希（初始密码 yem2026）；用户改密后存 localStorage，优先于默认。
+    const DEFAULT_PWD_HASH = 'fc5b503a3ba20b02c7b3a4466f0302109daa2955da74832b16797476bf54e72c';
+
+    // 紧凑 SHA-256 实现（兼容 file:// 环境，不依赖 crypto.subtle）
+    function sha256(ascii) {
+      function rightRotate(v, a) { return (v >>> a) | (v << (32 - a)); }
+      var mathPow = Math.pow, maxWord = mathPow(2, 32), result = '';
+      var words = [], asciiBitLength = ascii.length * 8;
+      var hash = sha256.h = sha256.h || [], k = sha256.k = sha256.k || [], primeCounter = k.length;
+      var isComposite = {};
+      for (var candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+          hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+          k[primeCounter++] = ((mathPow(candidate, 1 / 3) * maxWord) | 0);
+        }
+      }
+      ascii += '\x80';
+      while (ascii.length % 64 - 56) ascii += '\x00';
+      for (i = 0; i < ascii.length; i++) {
+        j = ascii.charCodeAt(i);
+        if (j >> 8) return '';
+        words[i >> 2] |= j << ((3 - i) % 4) * 8;
+      }
+      words[words.length] = ((asciiBitLength / maxWord) | 0);
+      words[words.length] = (asciiBitLength);
+      for (j = 0; j < words.length;) {
+        var w = words.slice(j, j += 16), oldHash = hash.slice(0, 8);
+        hash = hash.slice(0, 8);
+        for (i = 0; i < 64; i++) {
+          var i2 = i + j, w15 = w[i - 15], w2 = w[i - 2];
+          var a = hash[0], e = hash[4];
+          var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) | 0);
+          var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+          hash = [(temp1 + temp2) | 0].concat(hash);
+          hash[4] = (hash[4] + temp1) | 0;
+        }
+        for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+      }
+      for (i = 0; i < 8; i++) {
+        for (j = 3; j + 1; j--) {
+          var b = (hash[i] >> (j * 8)) & 255;
+          result += ((b < 16) ? 0 : '') + b.toString(16);
+        }
+      }
+      return result;
+    }
+
+    function getPwdHash() { try { return localStorage.getItem('ws_pwd_hash') || DEFAULT_PWD_HASH; } catch (e) { return DEFAULT_PWD_HASH; } }
+    function isAuthed() { try { return localStorage.getItem('ws_authed') === '1'; } catch (e) { return false; } }
+    function lockScreen(locked) {
+      document.getElementById('loginOverlay').style.display = locked ? 'flex' : 'none';
+      if (!locked) document.getElementById('loginPwd').value = '';
+    }
+    function doLogin() {
+      const pwd = document.getElementById('loginPwd').value;
+      if (sha256(pwd) === getPwdHash()) {
+        try { localStorage.setItem('ws_authed', '1'); } catch (e) {}
+        lockScreen(false);
+        document.getElementById('loginErr').style.display = 'none';
+      } else {
+        document.getElementById('loginErr').style.display = 'block';
+      }
+    }
+    function doLogout() {
+      try { localStorage.removeItem('ws_authed'); } catch (e) {}
+      lockScreen(true);
+    }
+    function openPwdModal() {
+      document.getElementById('pwdModal').style.display = 'flex';
+      document.getElementById('pwdErr').style.display = 'none';
+      document.getElementById('oldPwd').value = '';
+      document.getElementById('newPwd').value = '';
+      document.getElementById('newPwd2').value = '';
+    }
+    function savePwd() {
+      const old = document.getElementById('oldPwd').value;
+      const n1 = document.getElementById('newPwd').value;
+      const n2 = document.getElementById('newPwd2').value;
+      const err = document.getElementById('pwdErr');
+      if (sha256(old) !== getPwdHash()) { err.textContent = '当前密码不正确'; err.style.display = 'block'; return; }
+      if (n1.length < 6) { err.textContent = '新密码至少 6 位'; err.style.display = 'block'; return; }
+      if (n1 !== n2) { err.textContent = '两次输入的新密码不一致'; err.style.display = 'block'; return; }
+      try { localStorage.setItem('ws_pwd_hash', sha256(n1)); } catch (e) { err.textContent = '浏览器无法保存密码（file:// 受限？）'; err.style.display = 'block'; return; }
+      document.getElementById('pwdModal').style.display = 'none';
+      alert('密码已修改，下次登录请用新密码。');
+    }
+
     // ---------- Default data (used if JSON fetch fails, e.g. file://) ----------
     const defaultConfig = {
       siteTitle: "我的工作台",
@@ -720,6 +875,14 @@
       e.preventDefault();
       const pid = document.getElementById('f-pid').value.trim();
       if (!pid) { alert('商品ID必填'); return; }
+      // 14 天内不重复选同一商品
+      const recent = selectionItems.find(i => i.pid === pid && i.date);
+      if (recent) {
+        const days = Math.floor((new Date(todayStr()) - new Date(recent.date)) / 86400000);
+        if (days < 14) {
+          if (!confirm(`⚠️ 此商品ID「${pid}」在 ${days} 天前（${recent.date}）已选过，14 天内不重复。\n\n仍要保存吗？`)) return;
+        }
+      }
       selectionItems.unshift({
         id: 's_' + Date.now(),
         date: todayStr(),
@@ -1135,6 +1298,13 @@
     document.querySelectorAll('.menu-item').forEach(btn => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('btnLogout').addEventListener('click', doLogout);
+    document.getElementById('btnPwd').addEventListener('click', openPwdModal);
+    document.getElementById('pwdCancel').addEventListener('click', () => { document.getElementById('pwdModal').style.display = 'none'; });
+    document.getElementById('pwdSave').addEventListener('click', savePwd);
+    document.getElementById('newPwd2').addEventListener('keydown', e => { if (e.key === 'Enter') savePwd(); });
     document.getElementById('selForm').addEventListener('submit', addItem);
     document.getElementById('sel-time-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
     document.getElementById('sel-risk-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
@@ -1167,6 +1337,8 @@
 
 
     async function load() {
+      // 访问密码锁：未登录则锁屏
+      lockScreen(!isAuthed());
       try {
         const c = await fetch('config.json').then(r => r.ok ? r.json() : null);
         if (c) config = c;

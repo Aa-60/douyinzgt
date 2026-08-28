@@ -6,9 +6,7 @@
       "title": "电商运营",
       "icon": "🛒",
       "links": [
-        { "label": "1688 国际站", "url": "https://www.alibaba.com", "hint": "店铺后台" },
-        { "label": "影刀 RPA", "url": "https://www.yingdao.com", "hint": "图片银行上传" },
-        { "label": "alibaba_offline 工具", "url": "#", "hint": "本地数据" }
+        { "label": "1688 国际站", "url": "https://www.alibaba.com", "hint": "店铺后台" }
       ]
     },
     {
@@ -18,15 +16,6 @@
         { "label": "YouTube Studio", "url": "https://studio.youtube.com", "hint": "YEM 频道" },
         { "label": "剪映", "url": "#", "hint": "本地草稿" },
         { "label": "MoneyPrinterTurbo", "url": "#", "hint": "AI 视频生成" }
-      ]
-    },
-    {
-      "title": "效率工具",
-      "icon": "🧰",
-      "links": [
-        { "label": "pixelcraft 抠图", "url": "#", "hint": "换背景" },
-        { "label": "Book Hunter", "url": "#", "hint": "电子书" },
-        { "label": "WorkBuddy", "url": "#", "hint": "AI 助手" }
       ]
     },
     {
