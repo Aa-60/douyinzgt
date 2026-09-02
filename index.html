@@ -204,6 +204,67 @@
     .modal-actions .btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
     .modal-actions .btn-soft { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
     .modal-actions .btn-primary { background: var(--red); color: #fff; }
+
+    /* Benchmark accounts */
+    .benchmark-hero {
+      border-radius: var(--radius); padding: 24px; margin-bottom: 18px;
+      background: linear-gradient(135deg, #172554 0%, #1d4ed8 62%, #60a5fa 100%);
+      color: #fff; box-shadow: var(--shadow);
+    }
+    .benchmark-hero h2 { margin: 0 0 8px; font-size: 23px; }
+    .benchmark-hero p { margin: 0; max-width: 900px; color: rgba(255,255,255,.86); line-height: 1.7; font-size: 14px; }
+    .benchmark-scope { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .benchmark-scope span { padding: 6px 10px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: rgba(255,255,255,.12); font-size: 12px; }
+    .benchmark-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    .benchmark-summary .metric { min-height: 104px; justify-content: center; }
+    .benchmark-alert { border-left: 4px solid #f59e0b; background: #fffbeb; box-shadow: none; margin-bottom: 18px; }
+    .benchmark-alert strong { color: #92400e; }
+    .benchmark-alert p { margin: 7px 0 0; color: #78350f; font-size: 13px; line-height: 1.7; }
+    .benchmark-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .benchmark-toolbar .sel-input { width: auto; min-width: 148px; background: #fff; }
+    .benchmark-toolbar .benchmark-query { min-width: 230px; flex: 1; }
+    .benchmark-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .benchmark-card { position: relative; overflow: hidden; }
+    .benchmark-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: #93c5fd; }
+    .benchmark-card.core::before { background: var(--red); }
+    .benchmark-rank { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; background: var(--red-light); color: var(--red); font-size: 17px; font-weight: 800; }
+    .benchmark-title { display: flex; align-items: center; gap: 11px; }
+    .benchmark-title h3 { margin: 0 0 4px; font-size: 17px; }
+    .benchmark-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+    .benchmark-pill { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 650; background: #f1f5f9; color: #475569; }
+    .benchmark-pill.level { background: #dbeafe; color: #1d4ed8; }
+    .benchmark-pill.good { background: #dcfce7; color: #15803d; }
+    .benchmark-pill.warn { background: #fef3c7; color: #a16207; }
+    .benchmark-pill.bad { background: #fee2e2; color: #b91c1c; }
+    .benchmark-link { color: var(--red); text-decoration: none; font-size: 13px; font-weight: 650; white-space: nowrap; }
+    .benchmark-link:hover { text-decoration: underline; }
+    .benchmark-proof { margin: 16px 0; padding: 13px 14px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .benchmark-hook { margin: 0 0 8px; color: #0f172a; font-weight: 750; line-height: 1.5; }
+    .benchmark-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .benchmark-stat { min-width: 0; }
+    .benchmark-stat b { display: block; font-size: 13px; color: #1e40af; overflow-wrap: anywhere; }
+    .benchmark-stat span { color: var(--muted); font-size: 11px; }
+    .benchmark-proof-text { margin: 10px 0 0; color: #475569; font-size: 12px; line-height: 1.65; }
+    .benchmark-product { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 13px 0; margin-bottom: 13px; }
+    .benchmark-product-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .benchmark-product h4 { margin: 0 0 5px; font-size: 14px; line-height: 1.45; }
+    .benchmark-product p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .benchmark-risk { margin-top: 8px !important; color: #b91c1c !important; }
+    .benchmark-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .benchmark-list h4 { margin: 0 0 7px; font-size: 13px; }
+    .benchmark-list ul { margin: 0; padding-left: 18px; color: #475569; font-size: 12px; line-height: 1.65; }
+    .benchmark-list.avoid h4 { color: #b91c1c; }
+    .benchmark-evidence { margin-top: 13px; color: var(--muted); font-size: 11px; }
+    .benchmark-empty { grid-column: 1 / -1; }
+    @media (max-width: 980px) {
+      .benchmark-grid { grid-template-columns: 1fr; }
+      .benchmark-summary { grid-template-columns: repeat(2, 1fr); }
+      .benchmark-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .benchmark-summary, .benchmark-columns { grid-template-columns: 1fr; }
+      .benchmark-toolbar .sel-input, .benchmark-toolbar .benchmark-query { width: 100%; min-width: 0; }
+    }
   </style>
 </head>
 <body>
@@ -244,6 +305,7 @@
       <button class="menu-item" data-view="selection"><span class="menu-icon">🛍</span>选品库</button>
       <button class="menu-item" data-view="hot-architecture"><span class="menu-icon">🧩</span>爆款内容架构</button>
       <button class="menu-item" data-view="hot-product"><span class="menu-icon">💥</span>爆品打磨</button>
+      <button class="menu-item" data-view="benchmark"><span class="menu-icon">🎯</span>对标账号</button>
       <button class="menu-item" data-view="knowledge"><span class="menu-icon">📚</span>知识库</button>
     </nav>
     <div class="sidebar-foot">
@@ -534,6 +596,41 @@
           <div id="kbPager"></div>
         </div>
       </section>
+
+      <section id="view-benchmark" class="view">
+        <div class="benchmark-hero">
+          <h2>5 个低等级成交型对标账号</h2>
+          <p id="benchmarkNotice">只拆已出现成交信号的内容结构；账号等级、商品与流量来源都按证据状态展示，不把历史快照当作今天仍然有效的结论。</p>
+          <div class="benchmark-scope" id="benchmarkScope"></div>
+        </div>
+
+        <div class="benchmark-summary">
+          <div class="metric"><div class="num" id="bm-total">5</div><div class="label">对标账号</div></div>
+          <div class="metric"><div class="num" id="bm-lv0">2</div><div class="label">LV0 账号</div></div>
+          <div class="metric"><div class="num" id="bm-core">3</div><div class="label">核心拆解</div></div>
+          <div class="metric"><div class="num" id="bm-products">0</div><div class="label">当前可直接跟品</div></div>
+        </div>
+
+        <div class="card benchmark-alert">
+          <strong>先看结论：账号可以学，关联商品暂时都不要直接跟。</strong>
+          <p>这批账号满足 LV0–LV1、成交信号和价格带证据，但商品分别存在低佣、千川放大、口碑或宣传资质风险。对自然流量新号，先复制“痛点—演示—结果—价格理由”的结构，再用最新百应数据重新选商品。</p>
+        </div>
+
+        <div class="benchmark-toolbar">
+          <input class="sel-input benchmark-query" id="benchmark-query" placeholder="搜索账号、商品、钩子或风险…">
+          <select class="sel-input" id="benchmark-level-filter">
+            <option value="">全部等级</option>
+            <option value="LV0">只看 LV0</option>
+            <option value="LV1">只看 LV1</option>
+          </select>
+          <select class="sel-input" id="benchmark-tier-filter">
+            <option value="">全部优先级</option>
+            <option value="核心">核心拆解</option>
+            <option value="补充">补充参考</option>
+          </select>
+        </div>
+        <div class="benchmark-grid" id="benchmarkGrid"></div>
+      </section>
     </div>
   </main>
 
@@ -680,25 +777,126 @@
       { name: "示例图片", type: "image", path: "resources/sample.txt", desc: "请把真实资源放进 resources/ 文件夹并在 manifest.json 登记", date: "2026-08-27" }
     ];
 
+    const defaultBenchmarkData = {
+      generatedAt: "2026-09-02",
+      evidenceWindow: "账号视频发布于 2026-07-14 至 2026-08-04；百应证据采集于 2026-08-09 至 2026-08-17",
+      notice: "这 5 个账号用于拆内容结构，不等于推荐其关联商品。等级、价格和成交信号来自采集时的百应可见页面；发布或跟品前必须重新核验账号等级、自然/付费流量、佣金、库存、口碑与宣传资质。",
+      scope: { category: "家庭实用百货｜厨房清洁", creatorLevel: "巨量百应 LV0–LV1", priceBand: "¥9.9–29.9", traffic: "自然流量优先" },
+      accounts: []
+    };
+
     // ---------- State ----------
     let config = defaultConfig;
     let dataPanels = [defaultData];
     let files = defaultResources;
+    let benchmarkData = defaultBenchmarkData;
     let chartInstance = null;
 
     // ---------- Helpers ----------
     function switchView(name) {
       document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      const map = { dashboard: 'dashboard', data: 'data', files: 'files', selection: 'selection', 'hot-architecture': 'hot-architecture', 'hot-product': 'hot-product', knowledge: 'knowledge' };
+      const map = { dashboard: 'dashboard', data: 'data', files: 'files', selection: 'selection', 'hot-architecture': 'hot-architecture', 'hot-product': 'hot-product', benchmark: 'benchmark', knowledge: 'knowledge' };
       const viewId = 'view-' + (map[name] || name);
       document.getElementById(viewId)?.classList.add('active');
       const btn = document.querySelector(`.menu-item[data-view="${map[name] || name}"]`);
       if (btn) btn.classList.add('active');
-      const titles = { dashboard: '工作台首页', data: '数据面板', files: '资源中枢', selection: '选品库', 'hot-architecture': '爆款内容架构', 'hot-product': '爆品打磨', knowledge: '知识库' };
+      const titles = { dashboard: '工作台首页', data: '数据面板', files: '资源中枢', selection: '选品库', 'hot-architecture': '爆款内容架构', 'hot-product': '爆品打磨', benchmark: '对标账号', knowledge: '知识库' };
       document.getElementById('pageTitle').textContent = titles[name] || '工作台';
       if (name === 'data') renderData();
       if (name === 'hot-product') refreshHpImportSelect();
+      if (name === 'benchmark') renderBenchmarks();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+    }
+
+    function renderBenchmarks() {
+      const accounts = Array.isArray(benchmarkData.accounts) ? benchmarkData.accounts : [];
+      const level = document.getElementById('benchmark-level-filter')?.value || '';
+      const tier = document.getElementById('benchmark-tier-filter')?.value || '';
+      const query = (document.getElementById('benchmark-query')?.value || '').trim().toLowerCase();
+      const filtered = accounts.filter(account => {
+        if (level && account.level !== level) return false;
+        if (tier && account.tier !== tier) return false;
+        return !query || JSON.stringify(account).toLowerCase().includes(query);
+      });
+
+      document.getElementById('benchmarkNotice').textContent = benchmarkData.notice || defaultBenchmarkData.notice;
+      const scope = benchmarkData.scope || defaultBenchmarkData.scope;
+      document.getElementById('benchmarkScope').innerHTML = [scope.category, scope.creatorLevel, scope.priceBand, scope.traffic, benchmarkData.evidenceWindow]
+        .filter(Boolean).map(item => `<span>${escapeHtml(item)}</span>`).join('');
+      document.getElementById('bm-total').textContent = accounts.length;
+      document.getElementById('bm-lv0').textContent = accounts.filter(a => a.level === 'LV0').length;
+      document.getElementById('bm-core').textContent = accounts.filter(a => a.tier === '核心').length;
+      document.getElementById('bm-products').textContent = accounts.filter(a => a.productStatus === '可直接跟').length;
+
+      const grid = document.getElementById('benchmarkGrid');
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="card empty benchmark-empty">没有符合当前筛选条件的账号。</div>';
+        return;
+      }
+      grid.innerHTML = filtered.map(account => {
+        const video = account.video || {};
+        const product = account.product || {};
+        const learn = Array.isArray(account.learn) ? account.learn : [];
+        const avoid = Array.isArray(account.avoid) ? account.avoid : [];
+        return `
+          <article class="card benchmark-card ${account.tier === '核心' ? 'core' : ''}">
+            <div class="card-head">
+              <div class="benchmark-title">
+                <div class="benchmark-rank">${escapeHtml(account.rank)}</div>
+                <div>
+                  <h3>${escapeHtml(account.name)}</h3>
+                  <div class="benchmark-meta">
+                    <span class="benchmark-pill level">${escapeHtml(account.level)}</span>
+                    <span class="benchmark-pill ${account.tier === '核心' ? 'good' : 'warn'}">${escapeHtml(account.tier)}</span>
+                    <span class="benchmark-pill">${escapeHtml(account.fit)}</span>
+                    <span class="benchmark-pill bad">商品${escapeHtml(account.productStatus)}</span>
+                  </div>
+                </div>
+              </div>
+              <a class="benchmark-link" href="${escapeHtml(account.searchUrl)}" target="_blank" rel="noopener">抖音搜索 ↗</a>
+            </div>
+
+            <div class="benchmark-proof">
+              <p class="benchmark-hook">“${escapeHtml(video.hook)}”</p>
+              <div class="benchmark-stats">
+                <div class="benchmark-stat"><b>${escapeHtml(video.duration)}</b><span>视频时长</span></div>
+                <div class="benchmark-stat"><b>${escapeHtml(video.plays)}</b><span>播放</span></div>
+                <div class="benchmark-stat"><b>${escapeHtml(video.settlement)}</b><span>结算信号</span></div>
+                <div class="benchmark-stat"><b>${escapeHtml(video.likes)}</b><span>点赞</span></div>
+              </div>
+              <p class="benchmark-proof-text">${escapeHtml(video.proof)}</p>
+            </div>
+
+            <div class="benchmark-product">
+              <div class="benchmark-product-head">
+                <div>
+                  <h4>${escapeHtml(product.name)}</h4>
+                  <p>${escapeHtml(product.price)} · 佣金 ${escapeHtml(product.commission)} · 好评 ${escapeHtml(product.positiveRate)}</p>
+                </div>
+                <span class="benchmark-pill bad">不跟品</span>
+              </div>
+              <p>${escapeHtml(product.marketSignal)}</p>
+              <p class="benchmark-risk">风险：${escapeHtml(product.risk)}</p>
+            </div>
+
+            <div class="benchmark-columns">
+              <div class="benchmark-list">
+                <h4>可以学什么</h4>
+                <ul>${learn.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+              </div>
+              <div class="benchmark-list avoid">
+                <h4>不要照搬</h4>
+                <ul>${avoid.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+              </div>
+            </div>
+            <div class="benchmark-evidence">${escapeHtml(account.evidence)} · ${escapeHtml(account.format)}</div>
+          </article>
+        `;
+      }).join('');
     }
 
     function greeting() {
@@ -1334,6 +1532,9 @@
     document.getElementById('btn-export-kb-json').addEventListener('click', () => exportKnowledge('json'));
     document.getElementById('btn-export-kb-csv').addEventListener('click', () => exportKnowledge('csv'));
     document.getElementById('btn-import-kb-json').addEventListener('click', () => importFromFile({ key: 'knowledge_base', render: renderKnowledge }));
+    document.getElementById('benchmark-query').addEventListener('input', renderBenchmarks);
+    document.getElementById('benchmark-level-filter').addEventListener('change', renderBenchmarks);
+    document.getElementById('benchmark-tier-filter').addEventListener('change', renderBenchmarks);
 
 
     async function load() {
@@ -1351,6 +1552,10 @@
         const f = await fetch('resources/manifest.json').then(r => r.ok ? r.json() : null);
         if (f) files = f;
       } catch (e) { /* use default */ }
+      try {
+        const b = await fetch('data/benchmark-accounts.json').then(r => r.ok ? r.json() : null);
+        if (b) benchmarkData = b;
+      } catch (e) { /* use default */ }
 
       greeting();
       renderNav();
@@ -1364,6 +1569,7 @@
       renderHotProduct();
       loadKnowledge();
       renderKnowledge();
+      renderBenchmarks();
     }
     load();
   </script>
