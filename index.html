@@ -25,17 +25,21 @@
       background: var(--bg);
       color: var(--text);
       display: flex;
+      overflow: hidden;
     }
 
     /* Sidebar */
     .sidebar {
       width: 230px;
+      flex-shrink: 0;
       background: var(--card);
       border-right: 1px solid var(--border);
       padding: 24px 16px;
       display: flex;
       flex-direction: column;
       gap: 24px;
+      overflow-y: auto;
+      height: 100vh;
     }
     .brand {
       display: flex; align-items: center; gap: 10px;
@@ -59,7 +63,7 @@
     .menu-icon { width: 20px; text-align: center; }
 
     /* Main */
-    main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    main { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
     .topbar {
       height: 72px; background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -75,7 +79,7 @@
     }
     .search input { border: none; background: transparent; outline: none; font-size: 14px; width: 100%; }
 
-    .content { padding: 24px 28px; overflow: auto; flex: 1; }
+    .content { padding: 24px 28px; overflow-y: auto; overflow-x: hidden; flex: 1 1 auto; min-height: 0; -webkit-overflow-scrolling: touch; }
     .view { display: none; animation: fade .25s ease; }
     .view.active { display: block; }
     @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
@@ -161,9 +165,14 @@
     .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--red-light); color: var(--red); font-size: 12px; }
     .btn-primary { background: var(--red); color: #fff; }
     .btn-soft { background: var(--red-light); color: var(--red); font-weight: 600; }
-    .sel-input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; background: var(--bg); }
+    .sel-input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; min-width: 0; background: var(--bg); }
     .sel-input:focus { border-color: var(--red); }
     textarea.sel-input { resize: vertical; min-height: 60px; }
+    /* 窄窗口下录入表单改为单列，避免被挤出屏幕 */
+    @media (max-width: 760px) {
+      #selForm, #haForm, #hpForm, #kbForm { grid-template-columns: 1fr !important; }
+      #selForm > *, #haForm > *, #hpForm > *, #kbForm > * { grid-column: auto !important; }
+    }
     .risk-low { color: #16a34a; font-weight: 600; }
     .risk-mid { color: #f59e0b; font-weight: 600; }
     .risk-high { color: #dc2626; font-weight: 700; }
@@ -373,7 +382,7 @@
       <section id="view-selection" class="view">
         <div class="card" style="margin-bottom:18px;">
           <div class="card-head"><h3 class="card-title">➕ 录入今日选品</h3><span class="tag">本机保存</span></div>
-          <form id="selForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <form id="selForm" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
             <input class="sel-input" id="f-pid" placeholder="商品ID *" required>
             <input class="sel-input" id="f-purl" placeholder="商品链接">
             <input class="sel-input" id="f-surl" placeholder="店铺链接">
@@ -429,7 +438,7 @@
       <section id="view-hot-architecture" class="view">
         <div class="card" style="margin-bottom:18px;">
           <div class="card-head"><h3 class="card-title">🧩 录入爆款内容架构</h3><span class="tag">本机保存</span></div>
-          <form id="haForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <form id="haForm" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
             <input class="sel-input" id="ha-title" placeholder="爆款标题 *" required>
             <input class="sel-input" id="ha-link" placeholder="视频/笔记链接">
             <select class="sel-input" id="ha-platform">
@@ -491,7 +500,7 @@
             </select>
             <button class="btn btn-soft" type="button" id="btn-hp-import">导入</button>
           </div>
-          <form id="hpForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <form id="hpForm" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
             <input class="sel-input" id="hp-pid" placeholder="商品ID / 名称 *" required>
             <select class="sel-input" id="hp-platform">
               <option value="抖音">平台：抖音</option>
@@ -548,7 +557,7 @@
       <section id="view-knowledge" class="view">
         <div class="card" style="margin-bottom:18px;">
           <div class="card-head"><h3 class="card-title">📚 录入知识点</h3><span class="tag">本机保存</span></div>
-          <form id="kbForm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <form id="kbForm" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
             <input class="sel-input" id="kb-title" placeholder="标题 *" required>
             <select class="sel-input" id="kb-category">
               <option value="选品">分类：选品</option>
