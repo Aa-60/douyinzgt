@@ -853,7 +853,12 @@
         const empty = this.keys.every(k => {
           try { const v = JSON.parse(localStorage.getItem(k) || '[]'); return !Array.isArray(v) || v.length === 0; } catch (e) { return true; }
         });
-        if (empty) await this.pull();
+        if (empty) { await this.pull(); return; }   // 本地空 → 从云端恢复
+        // 本地有数据但云端可能还没有这份旧数据：云端文件不存在则立即补传，避免"开了同步却没上传"
+        try {
+          const r = await fetch(this.api + '/' + this.repo + '/contents/' + this.path, { headers: this.headers() });
+          if (r.status === 404) await this.push();
+        } catch (e) {}
       },
       _t: null,
       autoPush() {
@@ -1687,7 +1692,7 @@
     autoEl.checked = CLOUD.auto;
     autoEl.addEventListener('change', () => {
       CLOUD.auto = autoEl.checked;
-      if (autoEl.checked) CLOUD.setStatus('已开启自动同步，数据变更后将自动备份', 'ok');
+      if (autoEl.checked) { CLOUD.setStatus('已开启自动同步，正在检查云端备份…', 'ok'); CLOUD.maybeAutoPull(); }
     });
     if (CLOUD.token) document.getElementById('syncToken').value = CLOUD.token;
 
