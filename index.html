@@ -177,6 +177,16 @@
     .risk-mid { color: #f59e0b; font-weight: 600; }
     .risk-high { color: #dc2626; font-weight: 700; }
     .link-del { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 13px; }
+    .link-edit { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 13px; margin-right: 8px; }
+    .row-actions { white-space: nowrap; }
+    /* Edit modal */
+    .modal.modal-wide { width: 520px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow-y: auto; }
+    .edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .edit-grid .full { grid-column: 1 / -1; }
+    .edit-grid label { display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px; }
+    .edit-grid .sel-input { margin-bottom: 0; }
+    .edit-grid textarea.sel-input { min-height: 70px; resize: vertical; }
+    @media (max-width: 560px) { .edit-grid { grid-template-columns: minmax(0, 1fr); } }
     #selPager { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
     .pg { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 13px; }
     .pg:disabled { opacity: .4; cursor: not-allowed; }
@@ -301,6 +311,33 @@
       <div class="modal-actions">
         <button class="btn btn-soft" id="pwdCancel">取消</button>
         <button class="btn btn-primary" id="pwdSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit selection modal -->
+  <div class="modal-mask" id="editModal" style="display:none;">
+    <div class="modal modal-wide">
+      <h3>✏️ 编辑选品记录</h3>
+      <div class="edit-grid">
+        <div><label>日期</label><input class="sel-input" id="e-date" type="date"></div>
+        <div><label>商品ID *</label><input class="sel-input" id="e-pid"></div>
+        <div><label>商品链接</label><input class="sel-input" id="e-purl"></div>
+        <div><label>店铺链接</label><input class="sel-input" id="e-surl"></div>
+        <div><label>价格</label><input class="sel-input" id="e-price" placeholder="如 ¥29"></div>
+        <div><label>佣金</label><input class="sel-input" id="e-comm" placeholder="如 20% / ¥5"></div>
+        <div><label>商品评分</label><input class="sel-input" id="e-pscore" type="number" min="0" max="5" step="0.1"></div>
+        <div><label>店铺评分</label><input class="sel-input" id="e-sscore" type="number" min="0" max="5" step="0.1"></div>
+        <div><label>风险</label>
+          <select class="sel-input" id="e-risk">
+            <option value="低">低</option><option value="中">中</option><option value="高">高</option>
+          </select>
+        </div>
+        <div class="full"><label>备注</label><textarea class="sel-input" id="e-note" placeholder="选品理由 / 卖点 / 注意项"></textarea></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-soft" id="editCancel">取消</button>
+        <button class="btn btn-primary" id="editSave">保存修改</button>
       </div>
     </div>
   </div>
@@ -1196,9 +1233,11 @@
             <td>${it.sscore || '-'}</td>
             <td><span class="risk-${it.risk === '高' ? 'high' : it.risk === '中' ? 'mid' : 'low'}">${it.risk}</span></td>
             <td>${it.note || '-'}</td>
-            <td><button class="link-del" data-id="${it.id}">删除</button></td>
+            <td class="row-actions"><button class="link-edit" data-id="${it.id}">编辑</button><button class="link-del" data-id="${it.id}">删除</button></td>
           </tr>`).join('');
+        body.querySelectorAll('.link-edit').forEach(b => b.onclick = () => openEditSelection(b.dataset.id));
         body.querySelectorAll('.link-del').forEach(b => b.onclick = () => {
+          if (!confirm('确定删除这条选品记录？删除后不可恢复。')) return;
           selectionItems = selectionItems.filter(x => x.id !== b.dataset.id);
           saveSelection(); renderSelection();
         });
@@ -1220,6 +1259,48 @@
           renderSelection();
         });
       }
+    }
+    // ---------- 编辑选品记录 ----------
+    let editingId = null;
+    function openEditSelection(id) {
+      const it = selectionItems.find(x => x.id === id);
+      if (!it) return;
+      editingId = id;
+      document.getElementById('e-date').value = it.date || todayStr();
+      document.getElementById('e-pid').value = it.pid || '';
+      document.getElementById('e-purl').value = it.purl || '';
+      document.getElementById('e-surl').value = it.surl || '';
+      document.getElementById('e-price').value = it.price || '';
+      document.getElementById('e-comm').value = it.comm || '';
+      document.getElementById('e-pscore').value = it.pscore || '';
+      document.getElementById('e-sscore').value = it.sscore || '';
+      document.getElementById('e-risk').value = it.risk || '低';
+      document.getElementById('e-note').value = it.note || '';
+      document.getElementById('editModal').style.display = 'flex';
+    }
+    function closeEditSelection() {
+      document.getElementById('editModal').style.display = 'none';
+      editingId = null;
+    }
+    function saveEditSelection() {
+      if (!editingId) { closeEditSelection(); return; }
+      const it = selectionItems.find(x => x.id === editingId);
+      if (!it) { closeEditSelection(); return; }
+      const pid = document.getElementById('e-pid').value.trim();
+      if (!pid) { alert('商品ID必填'); return; }
+      it.date = document.getElementById('e-date').value || it.date || todayStr();
+      it.pid = pid;
+      it.purl = document.getElementById('e-purl').value.trim();
+      it.surl = document.getElementById('e-surl').value.trim();
+      it.price = document.getElementById('e-price').value.trim();
+      it.comm = document.getElementById('e-comm').value.trim();
+      it.pscore = document.getElementById('e-pscore').value.trim();
+      it.sscore = document.getElementById('e-sscore').value.trim();
+      it.risk = document.getElementById('e-risk').value;
+      it.note = document.getElementById('e-note').value.trim();
+      saveSelection();
+      closeEditSelection();
+      renderSelection();
     }
     function addItem(e) {
       e.preventDefault();
@@ -1663,6 +1744,12 @@
     document.getElementById('btn-import-json').addEventListener('click', () => importFromFile({ key: 'selection_items', render: renderSelection }));
     document.getElementById('btn-export-json').addEventListener('click', () => exportSelection('json'));
     document.getElementById('btn-export-csv').addEventListener('click', () => exportSelection('csv'));
+    document.getElementById('editCancel').addEventListener('click', closeEditSelection);
+    document.getElementById('editSave').addEventListener('click', saveEditSelection);
+    document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeEditSelection(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && document.getElementById('editModal').style.display === 'flex') closeEditSelection();
+    });
 
     document.getElementById('haForm').addEventListener('submit', addHotArchitecture);
     document.getElementById('ha-time-filter').addEventListener('change', () => { haPage = 1; renderHotArchitecture(); });
