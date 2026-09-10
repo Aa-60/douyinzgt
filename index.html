@@ -307,6 +307,7 @@
       <button class="menu-item" data-view="hot-product"><span class="menu-icon">💥</span>爆品打磨</button>
       <button class="menu-item" data-view="benchmark"><span class="menu-icon">🎯</span>对标账号</button>
       <button class="menu-item" data-view="knowledge"><span class="menu-icon">📚</span>知识库</button>
+      <button class="menu-item" data-view="sync"><span class="menu-icon">☁️</span>云端同步</button>
     </nav>
     <div class="sidebar-foot">
       <button class="menu-item" id="btnPwd"><span class="menu-icon">🔑</span>修改密码</button>
@@ -632,6 +633,53 @@
         <div class="benchmark-grid" id="benchmarkGrid"></div>
       </section>
     </div>
+    <section id="view-sync" class="view">
+      <style>
+        .view-title { font-size: 22px; margin-bottom: 6px; }
+        .view-desc { color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+        .view-desc code { background: #f3f4f6; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+        .sync-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; max-width: 660px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+        .sync-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .sync-row > label { font-size: 14px; color: #374151; min-width: 92px; }
+        .sync-token { flex: 1; min-width: 240px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; }
+        .sync-auto { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; cursor: pointer; }
+        .sync-actions { display: flex; gap: 10px; margin-top: 6px; }
+        .sync-status { margin-top: 14px; font-size: 13px; color: #6b7280; min-height: 18px; }
+        .sync-status.ok { color: #16a34a; }
+        .sync-status.err { color: #dc2626; }
+        .sync-time { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+        .sync-tip { margin-top: 18px; max-width: 660px; font-size: 13px; color: #4b5563; line-height: 1.7; }
+        .sync-tip code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+        .sync-warn { color: #b45309; margin-top: 8px; }
+      </style>
+      <h2 class="view-title">☁️ 云端同步</h2>
+      <p class="view-desc">把工作台数据备份到你的 GitHub 仓库 <code>Aa-60/douyinzgt</code>（文件 <code>data/workbench-data.json</code>），换浏览器、换设备也能一键恢复，刷新前也能随时备份。</p>
+      <div class="sync-card">
+        <div class="sync-row">
+          <label>GitHub Token</label>
+          <input class="sel-input sync-token" id="syncToken" type="password" placeholder="粘贴 Personal Access Token（仅需 repo 权限）" autocomplete="off">
+          <button class="btn btn-soft" id="btnSaveToken">保存</button>
+        </div>
+        <div class="sync-row">
+          <label class="sync-auto"><input type="checkbox" id="syncAuto"> 自动同步（数据变更后自动保存云端）</label>
+        </div>
+        <div class="sync-actions">
+          <button class="btn btn-primary" id="btnPush">⬆️ 保存到云端</button>
+          <button class="btn btn-soft" id="btnPull">⬇️ 从云端恢复</button>
+        </div>
+        <div class="sync-status" id="syncStatus"></div>
+        <div class="sync-time" id="syncTime"></div>
+      </div>
+      <div class="sync-tip">
+        <strong>如何获取 Token：</strong>
+        <ol>
+          <li>GitHub → 右上角头像 → Settings → Developer settings → Personal access tokens → Tokens (classic)。</li>
+          <li>生成新 token，勾选 <code>repo</code> 权限（或 Fine-grained 选本仓库的 Contents 读写）。</li>
+          <li>复制 token 粘贴到上方并点“保存”。token 仅存在本机浏览器，不会上传。</li>
+        </ol>
+        <p class="sync-warn">⚠️ 个人 token 等同仓库写入权限，请勿在公共电脑保存或勾选自动同步；如有泄露可在 GitHub 立即撤销。</p>
+      </div>
+    </section>
   </main>
 
   <script>
@@ -724,6 +772,96 @@
       document.getElementById('pwdModal').style.display = 'none';
       alert('密码已修改，下次登录请用新密码。');
     }
+
+    // ---------- Cloud sync (GitHub Contents API) ----------
+    // 把工作台数据备份到 GitHub 仓库文件，跨浏览器/设备可恢复。
+    const CLOUD = {
+      repo: 'Aa-60/douyinzgt',
+      path: 'data/workbench-data.json',
+      api: 'https://api.github.com/repos',
+      keys: ['selection_items', 'hot_architecture', 'hot_products', 'knowledge_base'],
+      tokenKey: 'ws_ghtoken',
+      autoKey: 'ws_autosync',
+      sha: null,
+      get token() { try { return localStorage.getItem(this.tokenKey) || ''; } catch (e) { return ''; } },
+      set token(v) { try { v ? localStorage.setItem(this.tokenKey, v) : localStorage.removeItem(this.tokenKey); } catch (e) {} },
+      get auto() { try { return localStorage.getItem(this.autoKey) === '1'; } catch (e) { return false; } },
+      set auto(v) { try { localStorage.setItem(this.autoKey, v ? '1' : '0'); } catch (e) {} },
+      collect() {
+        const o = {};
+        this.keys.forEach(k => { try { o[k] = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { o[k] = []; } });
+        return o;
+      },
+      apply(data) {
+        if (!data) return;
+        this.keys.forEach(k => { if (data[k] !== undefined) localStorage.setItem(k, JSON.stringify(data[k])); });
+      },
+      setStatus(msg, kind) {
+        const el = document.getElementById('syncStatus');
+        if (el) { el.textContent = msg || ''; el.className = 'sync-status' + (kind ? ' ' + kind : ''); }
+        const t = document.getElementById('syncTime');
+        if (t && msg && kind === 'ok') t.textContent = '最近成功同步：' + new Date().toLocaleString('zh-CN');
+      },
+      headers() {
+        const h = { 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+        if (this.token) h['Authorization'] = 'Bearer ' + this.token;
+        return h;
+      },
+      _b64(s) { return btoa(unescape(encodeURIComponent(s))); },
+      _ub64(s) { return decodeURIComponent(escape(atob(s.replace(/\s/g, '')))); },
+      async push() {
+        if (!this.token) { this.setStatus('请先填写并保存 GitHub Token', 'err'); return; }
+        this.setStatus('正在保存到云端…');
+        const payload = { _v: 1, savedAt: new Date().toISOString(), data: this.collect() };
+        const body = { message: 'workbench cloud sync ' + new Date().toISOString(), content: this._b64(JSON.stringify(payload, null, 2)) };
+        if (this.sha) body.sha = this.sha;
+        try {
+          const r = await fetch(this.api + '/' + this.repo + '/contents/' + this.path, {
+            method: 'PUT', headers: this.headers(), body: JSON.stringify(body)
+          });
+          if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || ('HTTP ' + r.status)); }
+          const j = await r.json();
+          this.sha = (j.content && j.content.sha) || this.sha;
+          this.setStatus('已保存到云端 ✓', 'ok');
+        } catch (e) {
+          this.sha = null;
+          this.setStatus('保存失败：' + e.message, 'err');
+        }
+      },
+      async pull() {
+        if (!this.token) { this.setStatus('请先填写并保存 GitHub Token', 'err'); return; }
+        this.setStatus('正在从云端恢复…');
+        try {
+          const r = await fetch(this.api + '/' + this.repo + '/contents/' + this.path, { headers: this.headers() });
+          if (r.status === 404) { this.setStatus('云端还没有备份文件（先点“保存到云端”）', 'err'); return; }
+          if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || ('HTTP ' + r.status)); }
+          const j = await r.json();
+          this.sha = j.sha;
+          const payload = JSON.parse(this._ub64(j.content));
+          this.apply(payload.data || payload);
+          loadSelection(); renderSelection();
+          loadHotArchitecture(); renderHotArchitecture();
+          loadHotProduct(); renderHotProduct();
+          loadKnowledge(); renderKnowledge();
+          this.setStatus('已从云端恢复 ✓', 'ok');
+        } catch (e) {
+          this.setStatus('恢复失败：' + e.message, 'err');
+        }
+      },
+      async maybeAutoPull() {
+        if (!this.auto || !this.token) return;
+        const empty = this.keys.every(k => {
+          try { const v = JSON.parse(localStorage.getItem(k) || '[]'); return !Array.isArray(v) || v.length === 0; } catch (e) { return true; }
+        });
+        if (empty) await this.pull();
+      },
+      _t: null,
+      autoPush() {
+        if (!this.auto || !this.token) return;
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.push(), 1500);
+      }
+    };
 
     // ---------- Default data (used if JSON fetch fails, e.g. file://) ----------
     const defaultConfig = {
@@ -1008,7 +1146,7 @@
       try { selectionItems = JSON.parse(localStorage.getItem('selection_items') || '[]'); }
       catch (e) { selectionItems = []; }
     }
-    function saveSelection() { localStorage.setItem('selection_items', JSON.stringify(selectionItems)); }
+    function saveSelection() { localStorage.setItem('selection_items', JSON.stringify(selectionItems)); CLOUD.autoPush(); }
     function renderSelection() {
       const riskFilter = document.getElementById('sel-risk-filter').value;
       const tf = document.getElementById('sel-time-filter').value;
@@ -1140,6 +1278,7 @@
             });
             localStorage.setItem(opts.key, JSON.stringify(Array.from(map.values())));
             opts.render();
+            CLOUD.autoPush();
             alert('导入完成：新增 ' + added + ' 条，合计 ' + map.size + ' 条（重复项已自动跳过）。');
           } catch (err) {
             alert('导入失败：' + err.message);
@@ -1155,7 +1294,7 @@
     let haItems = [];
     let haPage = 1;
     function loadHotArchitecture() { try { haItems = JSON.parse(localStorage.getItem('hot_architecture') || '[]'); } catch(e){ haItems = []; } }
-    function saveHotArchitecture() { localStorage.setItem('hot_architecture', JSON.stringify(haItems)); }
+    function saveHotArchitecture() { localStorage.setItem('hot_architecture', JSON.stringify(haItems)); CLOUD.autoPush(); }
     function renderHotArchitecture() {
       const pf = document.getElementById('ha-platform-filter').value;
       const tf = document.getElementById('ha-time-filter').value;
@@ -1257,7 +1396,7 @@
     let hpItems = [];
     let hpPage = 1;
     function loadHotProduct() { try { hpItems = JSON.parse(localStorage.getItem('hot_products') || '[]'); } catch(e){ hpItems = []; } }
-    function saveHotProduct() { localStorage.setItem('hot_products', JSON.stringify(hpItems)); }
+    function saveHotProduct() { localStorage.setItem('hot_products', JSON.stringify(hpItems)); CLOUD.autoPush(); }
     function refreshHpImportSelect() {
       const select = document.getElementById('hp-import-select');
       if (!select) return;
@@ -1390,7 +1529,7 @@
     let kbItems = [];
     let kbPage = 1;
     function loadKnowledge() { try { kbItems = JSON.parse(localStorage.getItem('knowledge_base') || '[]'); } catch(e){ kbItems = []; } }
-    function saveKnowledge() { localStorage.setItem('knowledge_base', JSON.stringify(kbItems)); }
+    function saveKnowledge() { localStorage.setItem('knowledge_base', JSON.stringify(kbItems)); CLOUD.autoPush(); }
     function renderKnowledge() {
       const cf = document.getElementById('kb-category-filter').value;
       const tf = document.getElementById('kb-time-filter').value;
@@ -1536,6 +1675,22 @@
     document.getElementById('benchmark-level-filter').addEventListener('change', renderBenchmarks);
     document.getElementById('benchmark-tier-filter').addEventListener('change', renderBenchmarks);
 
+    // ---------- Cloud sync wiring ----------
+    document.getElementById('btnSaveToken').addEventListener('click', () => {
+      const v = document.getElementById('syncToken').value.trim();
+      CLOUD.token = v;
+      CLOUD.setStatus(v ? 'Token 已保存 ✓' : '已清除 Token', v ? 'ok' : '');
+    });
+    document.getElementById('btnPush').addEventListener('click', () => CLOUD.push());
+    document.getElementById('btnPull').addEventListener('click', () => CLOUD.pull());
+    const autoEl = document.getElementById('syncAuto');
+    autoEl.checked = CLOUD.auto;
+    autoEl.addEventListener('change', () => {
+      CLOUD.auto = autoEl.checked;
+      if (autoEl.checked) CLOUD.setStatus('已开启自动同步，数据变更后将自动备份', 'ok');
+    });
+    if (CLOUD.token) document.getElementById('syncToken').value = CLOUD.token;
+
 
     async function load() {
       // 访问密码锁：未登录则锁屏
@@ -1570,6 +1725,7 @@
       loadKnowledge();
       renderKnowledge();
       renderBenchmarks();
+      CLOUD.maybeAutoPull();
     }
     load();
   </script>
