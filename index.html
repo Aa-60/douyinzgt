@@ -179,6 +179,10 @@
     .link-del { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 13px; }
     .link-edit { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 13px; margin-right: 8px; }
     .row-actions { white-space: nowrap; }
+    .pid-hint { margin-top: 10px; font-size: 13px; line-height: 1.6; padding: 9px 12px; border-radius: 10px; }
+    .pid-hint.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .pid-hint.ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .pid-hint a { color: #b45309; font-weight: 600; cursor: pointer; text-decoration: underline; }
     /* Edit modal */
     .modal.modal-wide { width: 520px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow-y: auto; }
     .edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -436,6 +440,7 @@
             <textarea class="sel-input" id="f-note" placeholder="备注：选品理由 / 卖点 / 注意项" style="grid-column:span 3;"></textarea>
             <button class="btn btn-primary" type="submit" style="grid-column:span 3;">保存选品</button>
           </form>
+          <div id="pidHint" class="pid-hint" style="display:none;"></div>
         </div>
 
         <div class="card">
@@ -1146,6 +1151,7 @@
       if (name === 'hot-product') refreshHpImportSelect();
       if (name === 'benchmark') renderBenchmarks();
       if (name === 'picked') renderPicked();
+      if (name === 'selection') checkPidDup();
     }
 
     function escapeHtml(value) {
@@ -1453,6 +1459,26 @@
       closeEditSelection();
       renderSelection();
     }
+    // 录入时实时查重提示：边输商品ID边提示是否已选过
+    function checkPidDup() {
+      const hint = document.getElementById('pidHint');
+      if (!hint) return;
+      const pid = document.getElementById('f-pid').value.trim().toLowerCase();
+      if (!pid) { hint.style.display = 'none'; return; }
+      const hits = selectionItems.filter(i => (i.pid || '').trim().toLowerCase() === pid);
+      if (!hits.length) {
+        hint.className = 'pid-hint ok';
+        hint.style.display = 'block';
+        hint.textContent = '✓ 该商品ID未选过，可放心保存。';
+        return;
+      }
+      const dates = hits.map(i => i.date).filter(Boolean).sort();
+      const first = dates[0], last = dates[dates.length - 1];
+      const status = pickedStatus[hits[0].pid] || '在跟';
+      hint.className = 'pid-hint warn';
+      hint.style.display = 'block';
+      hint.innerHTML = `⚠️ 该商品已在 ${first}${first !== last ? ' ~ ' + last : ''} 选过（共 ${hits.length} 次，状态：${status}）。<a onclick="switchView('picked')">查看已选品 →</a>`;
+    }
     function addItem(e) {
       e.preventDefault();
       const pid = document.getElementById('f-pid').value.trim();
@@ -1481,6 +1507,7 @@
       saveSelection();
       selPage = 1;
       document.getElementById('selForm').reset();
+      checkPidDup();
       renderSelection();
     }
     function exportSelection(type) {
@@ -1889,6 +1916,7 @@
     document.getElementById('pwdSave').addEventListener('click', savePwd);
     document.getElementById('newPwd2').addEventListener('keydown', e => { if (e.key === 'Enter') savePwd(); });
     document.getElementById('selForm').addEventListener('submit', addItem);
+    document.getElementById('f-pid').addEventListener('input', checkPidDup);
     document.getElementById('sel-time-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
     document.getElementById('sel-risk-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
     document.getElementById('sel-score-filter').addEventListener('change', () => { selPage = 1; renderSelection(); });
