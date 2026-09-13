@@ -149,6 +149,14 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 600; }
+    /* 横向滚动容器：表格列多时不再挤压变形，改为左右滚动 */
+    .table-scroll { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+    .table-scroll::-webkit-scrollbar { height: 9px; }
+    .table-scroll::-webkit-scrollbar-track { background: #f2f2f7; border-radius: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background: #a8a8ad; }
+    .table-scroll table { width: auto; min-width: 100%; }
+    .table-scroll th { white-space: nowrap; }
     .chart-box { height: 240px; }
 
     /* Files */
@@ -470,10 +478,12 @@
             </div>
           </div>
           <div id="selStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
-          <table>
-            <thead><tr><th>日期</th><th>商品ID</th><th>商品链接</th><th>店铺链接</th><th>价格</th><th>佣金</th><th>商品评分</th><th>店铺评分</th><th>风险</th><th>备注</th><th>操作</th></tr></thead>
-            <tbody id="selBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>日期</th><th>商品ID</th><th>商品链接</th><th>店铺链接</th><th>价格</th><th>佣金</th><th>商品评分</th><th>店铺评分</th><th>风险</th><th>备注</th><th>操作</th></tr></thead>
+              <tbody id="selBody"></tbody>
+            </table>
+          </div>
           <div id="selPager"></div>
         </div>
       </section>
@@ -526,10 +536,12 @@
             </div>
           </div>
           <div id="haStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
-          <table>
-            <thead><tr><th>日期</th><th>平台</th><th>标题</th><th>钩子</th><th>卖点</th><th>价格带</th><th>标签</th><th>备注</th><th>操作</th></tr></thead>
-            <tbody id="haBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>日期</th><th>平台</th><th>标题</th><th>钩子</th><th>卖点</th><th>价格带</th><th>标签</th><th>备注</th><th>操作</th></tr></thead>
+              <tbody id="haBody"></tbody>
+            </table>
+          </div>
           <div id="haPager"></div>
         </div>
       </section>
@@ -589,10 +601,12 @@
             </div>
           </div>
           <div id="hpStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
-          <table>
-            <thead><tr><th>日期</th><th>商品</th><th>平台</th><th>状态</th><th>卖点</th><th>角度1</th><th>角度2</th><th>角度3</th><th>操作</th></tr></thead>
-            <tbody id="hpBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>日期</th><th>商品</th><th>平台</th><th>状态</th><th>卖点</th><th>角度1</th><th>角度2</th><th>角度3</th><th>操作</th></tr></thead>
+              <tbody id="hpBody"></tbody>
+            </table>
+          </div>
           <div id="hpPager"></div>
         </div>
       </section>
@@ -642,10 +656,12 @@
             </div>
           </div>
           <div id="kbStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
-          <table>
-            <thead><tr><th>日期</th><th>分类</th><th>标题</th><th>标签</th><th>来源</th><th>内容摘要</th><th>操作</th></tr></thead>
-            <tbody id="kbBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>日期</th><th>分类</th><th>标题</th><th>标签</th><th>来源</th><th>内容摘要</th><th>操作</th></tr></thead>
+              <tbody id="kbBody"></tbody>
+            </table>
+          </div>
           <div id="kbPager"></div>
         </div>
       </section>
@@ -736,6 +752,11 @@
     <section id="view-picked" class="view">
       <style>
         .picked-status { padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); }
+        /* 已选品表格：锁定最小宽度，避免列被压成竖排文字 */
+        .picked-scroll table { min-width: 960px; }
+        .picked-scroll th, .picked-scroll td { white-space: nowrap; vertical-align: top; }
+        .picked-scroll td.picked-note { white-space: normal; min-width: 260px; max-width: 420px; word-break: break-word; }
+        .picked-scroll tr.picked-detail td { white-space: normal; }
         .picked-detail td { background: #fafbfc; }
         .picked-detail .pd { display: inline-block; margin-right: 16px; font-size: 12px; color: #555; }
         .picked-detail .pd.risk-high { color: #dc2626; font-weight: 600; }
@@ -763,10 +784,12 @@
           </div>
         </div>
         <div id="pickedStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
-        <table>
-          <thead><tr><th>商品ID</th><th>选品次数</th><th>首次选品</th><th>最近选品</th><th>状态</th><th>最近备注</th><th>操作</th></tr></thead>
-          <tbody id="pickedBody"></tbody>
-        </table>
+        <div class="table-scroll picked-scroll">
+          <table>
+            <thead><tr><th>商品ID</th><th>选品次数</th><th>首次选品</th><th>最近选品</th><th>状态</th><th>最近备注</th><th>操作</th></tr></thead>
+            <tbody id="pickedBody"></tbody>
+          </table>
+        </div>
         <div id="pickedPager"></div>
       </div>
     </section>
@@ -1089,7 +1112,7 @@
               <td>${r.first}</td>
               <td>${r.recent}</td>
               <td><select class="picked-status" data-pid="${escapeHtml(r.pid)}">${statusOpts}</select></td>
-              <td>${escapeHtml(r.note) || '-'}</td>
+              <td class="picked-note">${escapeHtml(r.note) || '-'}</td>
               <td><button class="link-edit" data-toggle="${escapeHtml(r.pid)}">${expanded ? '收起' : '展开(' + r.count + ')'}</button></td>
             </tr>`;
           if (expanded) {
