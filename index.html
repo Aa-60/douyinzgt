@@ -349,6 +349,7 @@
       <button class="menu-item" data-view="data"><span class="menu-icon">📊</span>数据面板</button>
       <button class="menu-item" data-view="files"><span class="menu-icon">🗂</span>资源中枢</button>
       <button class="menu-item" data-view="selection"><span class="menu-icon">🛍</span>选品库</button>
+      <button class="menu-item" data-view="picked"><span class="menu-icon">📌</span>已选品</button>
       <button class="menu-item" data-view="hot-architecture"><span class="menu-icon">🧩</span>爆款内容架构</button>
       <button class="menu-item" data-view="hot-product"><span class="menu-icon">💥</span>爆品打磨</button>
       <button class="menu-item" data-view="benchmark"><span class="menu-icon">🎯</span>对标账号</button>
@@ -726,6 +727,44 @@
         <p class="sync-warn">⚠️ 个人 token 等同仓库写入权限，请勿在公共电脑保存或勾选自动同步；如有泄露可在 GitHub 立即撤销。</p>
       </div>
     </section>
+
+    <section id="view-picked" class="view">
+      <style>
+        .picked-status { padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); }
+        .picked-detail td { background: #fafbfc; }
+        .picked-detail .pd { display: inline-block; margin-right: 16px; font-size: 12px; color: #555; }
+        .picked-detail .pd.risk-high { color: #dc2626; font-weight: 600; }
+        .picked-detail .pd.risk-mid { color: #d97706; }
+        .picked-detail .pd.risk-low { color: #16a34a; }
+      </style>
+      <h2 class="view-title">📌 已选品</h2>
+      <p class="view-desc">所有选过的商品按 <strong>商品ID</strong> 聚合——一眼看清哪些选过、选过几次、最近何时选，选新品前先来这页查重。可标记状态（<b>在跟 / 已弃 / 已出单</b>）跟踪跟进进度。</p>
+      <div class="card">
+        <div class="card-head">
+          <h3 class="card-title">已选商品汇总</h3>
+          <div>
+            <input class="sel-input" id="picked-search" placeholder="搜索商品ID / 备注…" style="width:180px;display:inline-block;">
+            <select class="sel-input" id="picked-status-filter" style="width:120px;display:inline-block;">
+              <option value="">全部状态</option>
+              <option value="在跟">在跟</option>
+              <option value="已弃">已弃</option>
+              <option value="已出单">已出单</option>
+            </select>
+            <select class="sel-input" id="picked-sort" style="width:150px;display:inline-block;">
+              <option value="recent">按最近选品排序</option>
+              <option value="count">按选品次数排序</option>
+              <option value="pid">按商品ID排序</option>
+            </select>
+          </div>
+        </div>
+        <div id="pickedStats" style="font-size:13px;color:#8e8e93;margin-bottom:10px;"></div>
+        <table>
+          <thead><tr><th>商品ID</th><th>选品次数</th><th>首次选品</th><th>最近选品</th><th>状态</th><th>最近备注</th><th>操作</th></tr></thead>
+          <tbody id="pickedBody"></tbody>
+        </table>
+        <div id="pickedPager"></div>
+      </div>
+    </section>
   </main>
 
   <script>
@@ -825,7 +864,7 @@
       repo: 'Aa-60/douyinzgt',
       path: 'data/workbench-data.json',
       api: 'https://api.github.com/repos',
-      keys: ['selection_items', 'hot_architecture', 'hot_products', 'knowledge_base'],
+      keys: ['selection_items', 'hot_architecture', 'hot_products', 'knowledge_base', 'picked_status'],
       tokenKey: 'ws_ghtoken',
       autoKey: 'ws_autosync',
       sha: null,
@@ -889,6 +928,7 @@
           loadHotArchitecture(); renderHotArchitecture();
           loadHotProduct(); renderHotProduct();
           loadKnowledge(); renderKnowledge();
+          loadPickedStatus(); renderPicked();
           this.setStatus('已从云端恢复 ✓', 'ok');
         } catch (e) {
           this.setStatus('恢复失败：' + e.message, 'err');
@@ -981,20 +1021,131 @@
     let benchmarkData = defaultBenchmarkData;
     let chartInstance = null;
 
+    // ---------- 已选品（按商品ID聚合，查重 + 跟进状态） ----------
+    let pickedStatus = {};
+    let pickedExpanded = new Set();
+    let pickedPage = 1;
+    function loadPickedStatus() {
+      try { pickedStatus = JSON.parse(localStorage.getItem('picked_status') || '{}'); }
+      catch (e) { pickedStatus = {}; }
+    }
+    function savePickedStatus() { localStorage.setItem('picked_status', JSON.stringify(pickedStatus)); CLOUD.autoPush(); }
+    function renderPicked() {
+      const q = (document.getElementById('picked-search')?.value || '').trim().toLowerCase();
+      const sf = document.getElementById('picked-status-filter')?.value || '';
+      const sort = document.getElementById('picked-sort')?.value || 'recent';
+
+      // 按商品ID聚合
+      const map = new Map();
+      selectionItems.forEach(it => {
+        if (!it.pid) return;
+        if (!map.has(it.pid)) map.set(it.pid, []);
+        map.get(it.pid).push(it);
+      });
+      let rows = Array.from(map.entries()).map(([pid, items]) => {
+        const dates = items.map(i => i.date).filter(Boolean).sort();
+        const last = items[items.length - 1];
+        return {
+          pid,
+          count: items.length,
+          first: dates[0] || '-',
+          recent: dates[dates.length - 1] || '-',
+          status: pickedStatus[pid] || '在跟',
+          note: last.note || '',
+          items
+        };
+      });
+      if (q) rows = rows.filter(r => r.pid.toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q));
+      if (sf) rows = rows.filter(r => r.status === sf);
+      if (sort === 'count') rows.sort((a, b) => b.count - a.count);
+      else if (sort === 'pid') rows.sort((a, b) => a.pid.localeCompare(b.pid));
+      else rows.sort((a, b) => (b.recent > a.recent ? 1 : b.recent < a.recent ? -1 : 0));
+
+      const pageSize = 12;
+      const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+      if (pickedPage > totalPages) pickedPage = totalPages;
+      if (pickedPage < 1) pickedPage = 1;
+      const pageRows = rows.slice((pickedPage - 1) * pageSize, pickedPage * pageSize);
+
+      const statusCounts = {};
+      rows.forEach(r => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
+
+      const body = document.getElementById('pickedBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">还没有选品记录，或没有匹配的结果。</td></tr>';
+      } else {
+        body.innerHTML = pageRows.map(r => {
+          const expanded = pickedExpanded.has(r.pid);
+          const statusOpts = ['在跟', '已弃', '已出单'].map(s => `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`).join('');
+          let html = `
+            <tr>
+              <td>${escapeHtml(r.pid)}</td>
+              <td>${r.count}</td>
+              <td>${r.first}</td>
+              <td>${r.recent}</td>
+              <td><select class="picked-status" data-pid="${escapeHtml(r.pid)}">${statusOpts}</select></td>
+              <td>${escapeHtml(r.note) || '-'}</td>
+              <td><button class="link-edit" data-toggle="${escapeHtml(r.pid)}">${expanded ? '收起' : '展开(' + r.count + ')'}</button></td>
+            </tr>`;
+          if (expanded) {
+            html += r.items.map(it => `
+              <tr class="picked-detail"><td colspan="7">
+                <span class="pd">📅 ${it.date || '-'}</span>
+                <span class="pd">💰 ${it.price || '-'}</span>
+                <span class="pd">🤝 ${it.comm || '-'}</span>
+                <span class="pd">⭐ ${it.pscore || '-'}</span>
+                <span class="pd risk-${it.risk === '高' ? 'high' : it.risk === '中' ? 'mid' : 'low'}">风险 ${it.risk || '-'}</span>
+                <span class="pd">📝 ${escapeHtml(it.note || '-')}</span>
+              </td></tr>`).join('');
+          }
+          return html;
+        }).join('');
+        body.querySelectorAll('.picked-status').forEach(s => s.onchange = () => {
+          pickedStatus[s.dataset.pid] = s.value;
+          savePickedStatus(); renderPicked();
+        });
+        body.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+          const pid = b.dataset.toggle;
+          if (pickedExpanded.has(pid)) pickedExpanded.delete(pid); else pickedExpanded.add(pid);
+          renderPicked();
+        });
+      }
+
+      const parts = [`共 ${rows.length} 个已选商品`, `选品记录总计 ${selectionItems.length} 条`];
+      if (statusCounts['在跟']) parts.push(`在跟 ${statusCounts['在跟']}`);
+      if (statusCounts['已弃']) parts.push(`已弃 ${statusCounts['已弃']}`);
+      if (statusCounts['已出单']) parts.push(`已出单 ${statusCounts['已出单']}`);
+      document.getElementById('pickedStats').textContent = parts.join(' · ');
+
+      const pager = document.getElementById('pickedPager');
+      if (totalPages <= 1) pager.innerHTML = '';
+      else {
+        pager.innerHTML = `<span style="margin-right:8px;">第 ${pickedPage}/${totalPages} 页 · 共 ${rows.length} 个</span>` +
+          `<button class="pg" data-p="prev" ${pickedPage === 1 ? 'disabled' : ''}>上一页</button>` +
+          `<button class="pg" data-p="next" ${pickedPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+        pager.querySelectorAll('.pg').forEach(b => b.onclick = () => {
+          if (b.disabled) return;
+          pickedPage = b.dataset.p === 'prev' ? pickedPage - 1 : pickedPage + 1;
+          renderPicked();
+        });
+      }
+    }
+
     // ---------- Helpers ----------
     function switchView(name) {
       document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      const map = { dashboard: 'dashboard', data: 'data', files: 'files', selection: 'selection', 'hot-architecture': 'hot-architecture', 'hot-product': 'hot-product', benchmark: 'benchmark', knowledge: 'knowledge' };
+      const map = { dashboard: 'dashboard', data: 'data', files: 'files', selection: 'selection', picked: 'picked', 'hot-architecture': 'hot-architecture', 'hot-product': 'hot-product', benchmark: 'benchmark', knowledge: 'knowledge' };
       const viewId = 'view-' + (map[name] || name);
       document.getElementById(viewId)?.classList.add('active');
       const btn = document.querySelector(`.menu-item[data-view="${map[name] || name}"]`);
       if (btn) btn.classList.add('active');
-      const titles = { dashboard: '工作台首页', data: '数据面板', files: '资源中枢', selection: '选品库', 'hot-architecture': '爆款内容架构', 'hot-product': '爆品打磨', benchmark: '对标账号', knowledge: '知识库' };
+      const titles = { dashboard: '工作台首页', data: '数据面板', files: '资源中枢', selection: '选品库', picked: '已选品', 'hot-architecture': '爆款内容架构', 'hot-product': '爆品打磨', benchmark: '对标账号', knowledge: '知识库' };
       document.getElementById('pageTitle').textContent = titles[name] || '工作台';
       if (name === 'data') renderData();
       if (name === 'hot-product') refreshHpImportSelect();
       if (name === 'benchmark') renderBenchmarks();
+      if (name === 'picked') renderPicked();
     }
 
     function escapeHtml(value) {
@@ -1744,6 +1895,9 @@
     document.getElementById('btn-import-json').addEventListener('click', () => importFromFile({ key: 'selection_items', render: renderSelection }));
     document.getElementById('btn-export-json').addEventListener('click', () => exportSelection('json'));
     document.getElementById('btn-export-csv').addEventListener('click', () => exportSelection('csv'));
+    document.getElementById('picked-search').addEventListener('input', () => { pickedPage = 1; renderPicked(); });
+    document.getElementById('picked-status-filter').addEventListener('change', () => { pickedPage = 1; renderPicked(); });
+    document.getElementById('picked-sort').addEventListener('change', () => { pickedPage = 1; renderPicked(); });
     document.getElementById('editCancel').addEventListener('click', closeEditSelection);
     document.getElementById('editSave').addEventListener('click', saveEditSelection);
     document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeEditSelection(); });
@@ -1825,6 +1979,8 @@
       renderHotProduct();
       loadKnowledge();
       renderKnowledge();
+      loadPickedStatus();
+      renderPicked();
       renderBenchmarks();
       CLOUD.maybeAutoPull();
     }
